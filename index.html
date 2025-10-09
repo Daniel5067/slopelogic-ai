@@ -181,31 +181,47 @@
 
       // When video starts playing
       resultsVideo.addEventListener('play', () => {
+        console.log('=== PLAY EVENT TRIGGERED ===');
         log('Video playing. Running pose detection...');
 
         if (!poseInitialized) {
+          console.error('MediaPipe Pose NOT initialized!');
           log('MediaPipe Pose not initialized!');
           return;
         }
 
+        console.log('Starting processAndDrawFrame loop...');
         // Start the hybrid processing/drawing loop
         processAndDrawFrame();
       });
 
       resultsVideo.addEventListener('pause', () => {
+        console.log('=== VIDEO PAUSED ===');
         log('Video paused.');
       });
 
       resultsVideo.addEventListener('ended', () => {
+        console.log('=== VIDEO ENDED ===');
         log('Video ended.');
       });
 
+      let frameCount = 0;
+      let drawCount = 0;
+
       // Hybrid approach: Process new frames, but draw smoothly at 60fps
       function processAndDrawFrame() {
+        frameCount++;
+        if (frameCount % 60 === 0) {
+          console.log(`processAndDrawFrame called ${frameCount} times, currentTime: ${resultsVideo.currentTime.toFixed(2)}s`);
+        }
+
         // Continue loop even if paused (will just skip processing)
         requestAnimationFrame(processAndDrawFrame);
 
         if (resultsVideo.paused || resultsVideo.ended) {
+          if (frameCount % 60 === 0) {
+            console.log('Video paused or ended, skipping processing');
+          }
           return;
         }
 
@@ -213,11 +229,12 @@
 
         // Only process if we're on a new video frame (~30fps threshold = 0.033s, use 0.015s for safety)
         if (Math.abs(currentTime - lastProcessedTime) > 0.015) {
+          console.log(`New frame detected at time ${currentTime.toFixed(3)}s (last: ${lastProcessedTime.toFixed(3)}s) - sending to MediaPipe`);
           lastProcessedTime = currentTime;
 
           // Send new frame to MediaPipe (async, won't block drawing)
           pose.send({ image: resultsVideo }).catch(error => {
-            console.error('Error processing frame:', error);
+            console.error('Error sending frame to MediaPipe:', error);
           });
         }
 
@@ -227,7 +244,18 @@
 
       // Draw the skeleton on canvas
       function drawSkeleton() {
+        drawCount++;
+
         const canvasCtx = resultsCanvas.getContext('2d');
+
+        if (!canvasCtx) {
+          console.error('Canvas context is null!');
+          return;
+        }
+
+        if (drawCount % 60 === 0) {
+          console.log(`drawSkeleton called ${drawCount} times. Canvas: ${resultsCanvas.width}x${resultsCanvas.height}, lastResults:`, lastResults ? 'EXISTS' : 'NULL');
+        }
 
         // Clear previous frame
         canvasCtx.save();
@@ -235,6 +263,10 @@
 
         // Draw pose skeleton if we have results
         if (lastResults && lastResults.poseLandmarks) {
+          if (drawCount % 60 === 0) {
+            console.log('Drawing skeleton with', lastResults.poseLandmarks.length, 'landmarks');
+          }
+
           // Draw skeleton connections (green lines)
           drawConnectors(
             canvasCtx,
@@ -249,6 +281,14 @@
             lastResults.poseLandmarks,
             { color: '#FF0000', lineWidth: 2, radius: 6 }
           );
+
+          if (drawCount % 60 === 0) {
+            console.log('Skeleton drawn successfully');
+          }
+        } else {
+          if (drawCount % 60 === 0) {
+            console.log('No results to draw - lastResults:', lastResults);
+          }
         }
 
         canvasCtx.restore();
@@ -256,6 +296,7 @@
 
       // Store results from MediaPipe (called after processing each frame)
       function onResults(results) {
+        console.log('onResults called! poseLandmarks:', results.poseLandmarks ? `YES (${results.poseLandmarks.length} points)` : 'NO');
         lastResults = results;
       }
     });
