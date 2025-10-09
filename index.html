@@ -85,12 +85,24 @@
       align-items: center;
       margin: 5px 0;
     }
+    .info-badge {
+      display: inline-block;
+      background: #4CAF50;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-left: 10px;
+    }
   </style>
 </head>
 <body>
   <h1>AI Ski Coach</h1>
   <p>Upload your ski video and watch the AI analyze your form in real-time.</p>
-  <p style="font-size: 14px; color: #666;">Optimized for distant skiers with enhanced detection.</p>
+  <p style="font-size: 14px; color: #666;">
+    Advanced tracking with temporal smoothing & Kalman filtering
+    <span class="info-badge">Optimized for distant skiers</span>
+  </p>
 
   <label for="videoUpload" class="upload-btn">Choose Video File</label>
   <input type="file" id="videoUpload" accept="video/*">
@@ -114,6 +126,12 @@
       <span id="sharpnessValue">1.5</span>
     </div>
     <input type="range" id="sharpness" min="0" max="3" step="0.5" value="1.5">
+
+    <div class="settings-row">
+      <label for="smoothing">Temporal Smoothing:</label>
+      <span id="smoothingValue">0.7</span>
+    </div>
+    <input type="range" id="smoothing" min="0" max="1" step="0.1" value="0.7">
   </div>
 
   <div id="status"></div>
@@ -123,7 +141,6 @@
     <canvas id="resultsCanvas"></canvas>
   </div>
 
-  <!-- Hidden canvas for preprocessing -->
   <canvas id="processingCanvas"></canvas>
 
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
@@ -135,6 +152,194 @@
     function log(message) {
       console.log(message);
       status.textContent = message;
+    }
+
+    // Kalman Filter for 2D point tracking
+    class KalmanFilter {
+      constructor() {
+        this.x = 0; // position x
+        this.y = 0; // position y
+        this.vx = 0; // velocity x
+        this.vy = 0; // velocity y
+        this.initialized = false;
+
+        // Process noise
+        this.processNoise = 0.01;
+        // Measurement noise
+        this.measurementNoise = 0.1;
+
+        // Error covariance
+        this.p = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]];
+      }
+
+      update(mx, my) {
+        if (!this.initialized) {
+          this.x = mx;
+          this.y = my;
+          this.initialized = true;
+          return { x: mx, y: my };
+        }
+
+        // Predict
+        const predictedX = this.x + this.vx;
+        const predictedY = this.y + this.vy;
+
+        // Update with measurement
+        const kx = this.p[0][0] / (this.p[0][0] + this.measurementNoise);
+        const ky = this.p[1][1] / (this.p[1][1] + this.measurementNoise);
+
+        this.x = predictedX + kx * (mx - predictedX);
+        this.y = predictedY + ky * (my - predictedY);
+
+        this.vx = (1 - kx) * this.vx + kx * (mx - predictedX);
+        this.vy = (1 - ky) * this.vy + ky * (my - predictedY);
+
+        // Update error covariance
+        this.p[0][0] = (1 - kx) * this.p[0][0] + this.processNoise;
+        this.p[1][1] = (1 - ky) * this.p[1][1] + this.processNoise;
+
+        return { x: this.x, y: this.y };
+      }
+
+      predict() {
+        if (!this.initialized) return null;
+        return { x: this.x + this.vx, y: this.y + this.vy };
+      }
+    }
+
+    // Temporal Smoothing System
+    class TemporalSmoother {
+      constructor(historySize = 10, maxGapFrames = 5) {
+        this.historySize = historySize;
+        this.maxGapFrames = maxGapFrames;
+        this.history = [];
+        this.kalmanFilters = {}; // One filter per landmark
+        this.missingFrames = {}; // Track missing frames per landmark
+      }
+
+      addFrame(landmarks) {
+        this.history.push({
+          landmarks: landmarks ? JSON.parse(JSON.stringify(landmarks)) : null,
+          timestamp: Date.now()
+        });
+
+        if (this.history.length > this.historySize) {
+          this.history.shift();
+        }
+      }
+
+      smooth(currentLandmarks, smoothingFactor = 0.7) {
+        if (!currentLandmarks) {
+          // No detection - try to interpolate from history
+          return this.interpolateFromHistory();
+        }
+
+        const smoothedLandmarks = [];
+
+        currentLandmarks.forEach((landmark, i) => {
+          // Initialize Kalman filter if needed
+          if (!this.kalmanFilters[i]) {
+            this.kalmanFilters[i] = new KalmanFilter();
+          }
+
+          // Apply Kalman filtering
+          const filtered = this.kalmanFilters[i].update(landmark.x, landmark.y);
+
+          // Temporal smoothing with history
+          let smoothedLandmark = { ...landmark };
+
+          if (this.history.length > 0) {
+            const recentFrames = this.history.slice(-5);
+            const validFrames = recentFrames.filter(f => f.landmarks && f.landmarks[i]);
+
+            if (validFrames.length > 0) {
+              let avgX = 0, avgY = 0, avgZ = 0;
+              validFrames.forEach(frame => {
+                avgX += frame.landmarks[i].x;
+                avgY += frame.landmarks[i].y;
+                avgZ += frame.landmarks[i].z;
+              });
+              avgX /= validFrames.length;
+              avgY /= validFrames.length;
+              avgZ /= validFrames.length;
+
+              // Blend current with historical average
+              smoothedLandmark.x = filtered.x * (1 - smoothingFactor) + avgX * smoothingFactor;
+              smoothedLandmark.y = filtered.y * (1 - smoothingFactor) + avgY * smoothingFactor;
+              smoothedLandmark.z = landmark.z * (1 - smoothingFactor) + avgZ * smoothingFactor;
+            } else {
+              smoothedLandmark.x = filtered.x;
+              smoothedLandmark.y = filtered.y;
+            }
+          } else {
+            smoothedLandmark.x = filtered.x;
+            smoothedLandmark.y = filtered.y;
+          }
+
+          // Reset missing frames counter
+          this.missingFrames[i] = 0;
+
+          smoothedLandmarks.push(smoothedLandmark);
+        });
+
+        this.addFrame(smoothedLandmarks);
+        return smoothedLandmarks;
+      }
+
+      interpolateFromHistory() {
+        if (this.history.length < 2) return null;
+
+        // Get the two most recent valid frames
+        const validFrames = this.history.filter(f => f.landmarks).slice(-2);
+        if (validFrames.length < 2) return null;
+
+        const interpolated = [];
+        const frame1 = validFrames[validFrames.length - 2].landmarks;
+        const frame2 = validFrames[validFrames.length - 1].landmarks;
+
+        frame1.forEach((landmark, i) => {
+          if (frame2[i]) {
+            // Use Kalman filter prediction if available
+            if (this.kalmanFilters[i]) {
+              const predicted = this.kalmanFilters[i].predict();
+              if (predicted) {
+                interpolated.push({
+                  x: predicted.x,
+                  y: predicted.y,
+                  z: (landmark.z + frame2[i].z) / 2,
+                  visibility: Math.min(landmark.visibility, frame2[i].visibility) * 0.8
+                });
+
+                // Increment missing frames counter
+                this.missingFrames[i] = (this.missingFrames[i] || 0) + 1;
+
+                // Stop interpolating if too many frames missing
+                if (this.missingFrames[i] > this.maxGapFrames) {
+                  return null;
+                }
+
+                continue;
+              }
+            }
+
+            // Linear interpolation fallback
+            interpolated.push({
+              x: (landmark.x + frame2[i].x) / 2,
+              y: (landmark.y + frame2[i].y) / 2,
+              z: (landmark.z + frame2[i].z) / 2,
+              visibility: Math.min(landmark.visibility, frame2[i].visibility) * 0.8
+            });
+          }
+        });
+
+        return interpolated.length === frame1.length ? interpolated : null;
+      }
+
+      reset() {
+        this.history = [];
+        this.kalmanFilters = {};
+        this.missingFrames = {};
+      }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -151,14 +356,17 @@
       const contrastSlider = document.getElementById('contrast');
       const brightnessSlider = document.getElementById('brightness');
       const sharpnessSlider = document.getElementById('sharpness');
+      const smoothingSlider = document.getElementById('smoothing');
       const contrastValue = document.getElementById('contrastValue');
       const brightnessValue = document.getElementById('brightnessValue');
       const sharpnessValue = document.getElementById('sharpnessValue');
+      const smoothingValue = document.getElementById('smoothingValue');
 
       let settings = {
         contrast: 1.3,
         brightness: 1.1,
-        sharpness: 1.5
+        sharpness: 1.5,
+        smoothing: 0.7
       };
 
       contrastSlider.addEventListener('input', (e) => {
@@ -176,10 +384,16 @@
         sharpnessValue.textContent = settings.sharpness;
       });
 
+      smoothingSlider.addEventListener('input', (e) => {
+        settings.smoothing = parseFloat(e.target.value);
+        smoothingValue.textContent = settings.smoothing;
+      });
+
       let poseInitialized = false;
       let pose;
+      let temporalSmoother = new TemporalSmoother(10, 5);
 
-      // Initialize MediaPipe Pose with MAXIMUM settings for distant detection
+      // Initialize MediaPipe Pose
       try {
         log('Initializing MediaPipe Pose with maximum model complexity...');
         pose = new Pose({
@@ -189,16 +403,16 @@
         });
 
         pose.setOptions({
-          modelComplexity: 2,  // Maximum complexity (0=lite, 1=full, 2=heavy)
+          modelComplexity: 2,
           smoothLandmarks: true,
           enableSegmentation: false,
           smoothSegmentation: false,
-          minDetectionConfidence: 0.3,  // Lower threshold for distant subjects
-          minTrackingConfidence: 0.3    // Lower threshold for better tracking
+          minDetectionConfidence: 0.3,
+          minTrackingConfidence: 0.3
         });
 
         pose.onResults(onResults);
-        log('MediaPipe Pose initialized with heavy model (complexity: 2)');
+        log('MediaPipe Pose initialized with advanced tracking');
         poseInitialized = true;
       } catch (error) {
         log('Error initializing MediaPipe: ' + error.message);
@@ -215,21 +429,19 @@
 
         log(`Video selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
 
-        // Show player container
         playerContainer.classList.remove('hidden');
-
-        // Create object URL and set video source
         const videoURL = URL.createObjectURL(file);
         resultsVideo.src = videoURL;
+
+        // Reset temporal smoother for new video
+        temporalSmoother.reset();
 
         log('Loading video...');
       });
 
-      // Video loaded and ready
       resultsVideo.addEventListener('loadedmetadata', () => {
         log(`Video loaded! Resolution: ${resultsVideo.videoWidth}x${resultsVideo.videoHeight}. Click play to start.`);
 
-        // Set canvas sizes to FULL video resolution (no downscaling)
         resultsCanvas.width = resultsVideo.videoWidth;
         resultsCanvas.height = resultsVideo.videoHeight;
         processingCanvas.width = resultsVideo.videoWidth;
@@ -238,15 +450,13 @@
         console.log(`Processing at full resolution: ${resultsVideo.videoWidth}x${resultsVideo.videoHeight}`);
       });
 
-      // Video error handling
       resultsVideo.addEventListener('error', (e) => {
         log('Error loading video: ' + e.message);
         console.error('Video error:', e);
       });
 
-      // When video starts playing
       resultsVideo.addEventListener('play', () => {
-        log('Video playing. Running AI analysis with enhanced detection...');
+        log('Video playing. AI analysis with temporal smoothing active...');
 
         if (!poseInitialized) {
           log('Warning: MediaPipe Pose not initialized!');
@@ -256,55 +466,46 @@
         processVideoFrame();
       });
 
-      // When video is paused
       resultsVideo.addEventListener('pause', () => {
         log('Video paused.');
       });
 
-      // When video ends
       resultsVideo.addEventListener('ended', () => {
         log('Video ended. Upload another video to analyze.');
       });
 
-      // Preprocess video frame for better detection
+      // Preprocess video frame
       function preprocessFrame(videoElement) {
         const width = processingCanvas.width;
         const height = processingCanvas.height;
 
-        // Draw current video frame
         processingCtx.drawImage(videoElement, 0, 0, width, height);
 
-        // Get image data
         const imageData = processingCtx.getImageData(0, 0, width, height);
         const data = imageData.data;
 
-        // Apply contrast and brightness adjustments
         for (let i = 0; i < data.length; i += 4) {
-          // Apply brightness and contrast
-          data[i] = ((data[i] / 255 - 0.5) * settings.contrast + 0.5) * 255 * settings.brightness;     // Red
-          data[i + 1] = ((data[i + 1] / 255 - 0.5) * settings.contrast + 0.5) * 255 * settings.brightness; // Green
-          data[i + 2] = ((data[i + 2] / 255 - 0.5) * settings.contrast + 0.5) * 255 * settings.brightness; // Blue
+          data[i] = ((data[i] / 255 - 0.5) * settings.contrast + 0.5) * 255 * settings.brightness;
+          data[i + 1] = ((data[i + 1] / 255 - 0.5) * settings.contrast + 0.5) * 255 * settings.brightness;
+          data[i + 2] = ((data[i + 2] / 255 - 0.5) * settings.contrast + 0.5) * 255 * settings.brightness;
         }
 
-        // Apply sharpness if needed
         if (settings.sharpness > 0) {
-          imageData = applySharpen(imageData, settings.sharpness);
+          const sharpened = applySharpen(imageData, settings.sharpness);
+          processingCtx.putImageData(sharpened, 0, 0);
+        } else {
+          processingCtx.putImageData(imageData, 0, 0);
         }
-
-        // Put processed image back
-        processingCtx.putImageData(imageData, 0, 0);
 
         return processingCanvas;
       }
 
-      // Apply sharpening filter
       function applySharpen(imageData, amount) {
         const width = imageData.width;
         const height = imageData.height;
         const data = imageData.data;
         const output = processingCtx.createImageData(width, height);
 
-        // Sharpening kernel
         const kernel = [
           0, -1 * amount, 0,
           -1 * amount, 1 + 4 * amount, -1 * amount,
@@ -326,24 +527,20 @@
               output.data[outIdx] = Math.max(0, Math.min(255, sum));
             }
             const outIdx = (y * width + x) * 4 + 3;
-            output.data[outIdx] = 255; // Alpha
+            output.data[outIdx] = 255;
           }
         }
 
         return output;
       }
 
-      // Process video frames
       async function processVideoFrame() {
         if (resultsVideo.paused || resultsVideo.ended) {
           return;
         }
 
         try {
-          // Preprocess the frame for better detection
           const processedFrame = preprocessFrame(resultsVideo);
-
-          // Send preprocessed frame to MediaPipe
           await pose.send({ image: processedFrame });
         } catch (error) {
           console.error('Error processing frame:', error);
@@ -352,28 +549,30 @@
         requestAnimationFrame(processVideoFrame);
       }
 
-      // Draw results
       function onResults(results) {
         const canvasCtx = resultsCanvas.getContext('2d');
 
-        // Clear canvas
         canvasCtx.save();
         canvasCtx.clearRect(0, 0, resultsCanvas.width, resultsCanvas.height);
 
-        // Draw pose landmarks if detected
-        if (results.poseLandmarks) {
-          // Draw connections (skeleton lines) - THICKER for visibility
+        // Apply temporal smoothing and Kalman filtering
+        const smoothedLandmarks = temporalSmoother.smooth(
+          results.poseLandmarks,
+          settings.smoothing
+        );
+
+        if (smoothedLandmarks) {
+          // Draw with smoothed landmarks
           drawConnectors(
             canvasCtx,
-            results.poseLandmarks,
+            smoothedLandmarks,
             POSE_CONNECTIONS,
             { color: '#00FF00', lineWidth: 6 }
           );
 
-          // Draw landmarks (joints) - LARGER for visibility
           drawLandmarks(
             canvasCtx,
-            results.poseLandmarks,
+            smoothedLandmarks,
             { color: '#FF0000', lineWidth: 3, radius: 8 }
           );
         }
