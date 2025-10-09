@@ -44,8 +44,8 @@
     <canvas id="resultsCanvas"></canvas>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@mediapose/pose/pose.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapose/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1620248257/drawing_utils.js" crossorigin="anonymous"></script>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -55,7 +55,7 @@
       const resultsCanvas = document.getElementById('resultsCanvas');
 
       const pose = new Pose({
-          locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapose/pose/${file}`
+          locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`
       });
       pose.setOptions({
           modelComplexity: 1,
