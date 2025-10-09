@@ -322,10 +322,10 @@
 
                 // Stop interpolating if too many frames missing
                 if (this.missingFrames[i] > this.maxGapFrames) {
-                  return null;
+                  return; // Exit this iteration
                 }
 
-                continue;
+                return; // Skip to next iteration (replaces continue)
               }
             }
 
