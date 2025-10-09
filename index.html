@@ -17,15 +17,21 @@
       position: relative;
       width: 100%;
       max-width: 720px;
+      min-height: 400px;
       margin: 20px auto;
       background-color: #000;
       border-radius: 8px;
       overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     #resultsVideo {
       width: 100%;
       height: auto;
       display: block;
+      position: relative;
+      z-index: 1;
     }
     #resultsCanvas {
       position: absolute;
@@ -34,6 +40,7 @@
       width: 100%;
       height: 100%;
       pointer-events: none;
+      z-index: 2;
     }
     #processingCanvas {
       display: none;
@@ -429,14 +436,29 @@
 
         log(`Video selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
 
+        // Show player container
         playerContainer.classList.remove('hidden');
+        console.log('Player container shown');
+
+        // Create object URL and set video source
         const videoURL = URL.createObjectURL(file);
         resultsVideo.src = videoURL;
+        resultsVideo.style.display = 'block';
+
+        console.log('Video source set:', videoURL);
+        console.log('Video element:', resultsVideo);
 
         // Reset temporal smoother for new video
         temporalSmoother.reset();
 
-        log('Loading video...');
+        // Force video load
+        try {
+          await resultsVideo.load();
+          log('Video loading initiated...');
+        } catch (error) {
+          console.error('Error loading video:', error);
+          log('Error loading video: ' + error.message);
+        }
       });
 
       resultsVideo.addEventListener('loadedmetadata', () => {
