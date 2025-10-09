@@ -1,7 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>AI Ski Coach - Slope Logic</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>AI Ski Coach - Slope Logic v2025.10.09</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -72,6 +77,7 @@
 <body>
   <h1>AI Ski Coach</h1>
   <p>Upload your ski video and watch real-time pose detection.</p>
+  <p style="font-size: 12px; color: #999;">Version: 2025.10.09.1350 🔴 DEBUG MODE</p>
 
   <label for="videoUpload" class="upload-btn">Choose Video File</label>
   <input type="file" id="videoUpload" accept="video/*">
@@ -87,8 +93,13 @@
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1620248257/drawing_utils.js" crossorigin="anonymous"></script>
 
   <script>
-    console.log('🔴🔴🔴 JAVASCRIPT FILE LOADED - NEW VERSION WITH DEBUGGING 🔴🔴🔴');
+    // ULTRA VISIBLE DEBUG - THIS WILL ALERT IF PAGE LOADS
+    console.log('🔴🔴🔴 JAVASCRIPT FILE LOADED - VERSION 2025.10.09.1350 🔴🔴🔴');
     console.log('Timestamp:', new Date().toISOString());
+    console.log('🔴 If you see this, the new version is loaded!');
+
+    // Uncomment to show alert (annoying but proves new code is running)
+    // alert('🔴 NEW VERSION LOADED - Check console for red markers!');
 
     const status = document.getElementById('status');
 
