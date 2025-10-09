@@ -87,6 +87,9 @@
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1620248257/drawing_utils.js" crossorigin="anonymous"></script>
 
   <script>
+    console.log('🔴🔴🔴 JAVASCRIPT FILE LOADED - NEW VERSION WITH DEBUGGING 🔴🔴🔴');
+    console.log('Timestamp:', new Date().toISOString());
+
     const status = document.getElementById('status');
 
     function log(message) {
@@ -95,6 +98,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+      console.log('🟢 DOMContentLoaded event fired');
       log('Ready to upload video.');
 
       const videoUpload = document.getElementById('videoUpload');
