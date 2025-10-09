@@ -104,6 +104,8 @@
 
       let poseInitialized = false;
       let pose;
+      let lastProcessedTime = -1;
+      let lastResults = null;
 
       // Initialize MediaPipe Pose with medium settings for speed
       try {
@@ -185,6 +187,9 @@
           log('MediaPipe Pose not initialized!');
           return;
         }
+
+        // Start the hybrid processing/drawing loop
+        processAndDrawFrame();
       });
 
       resultsVideo.addEventListener('pause', () => {
@@ -195,32 +200,45 @@
         log('Video ended.');
       });
 
-      // Process frames synchronized with video timeline using timeupdate event
-      resultsVideo.addEventListener('timeupdate', async () => {
-        if (!resultsVideo.paused && !resultsVideo.ended && poseInitialized) {
-          try {
-            // Send current video frame directly to MediaPipe
-            await pose.send({ image: resultsVideo });
-          } catch (error) {
-            console.error('Error processing frame:', error);
-          }
-        }
-      });
+      // Hybrid approach: Process new frames, but draw smoothly at 60fps
+      function processAndDrawFrame() {
+        // Continue loop even if paused (will just skip processing)
+        requestAnimationFrame(processAndDrawFrame);
 
-      // Draw results (called by MediaPipe after processing each frame)
-      function onResults(results) {
+        if (resultsVideo.paused || resultsVideo.ended) {
+          return;
+        }
+
+        const currentTime = resultsVideo.currentTime;
+
+        // Only process if we're on a new video frame (~30fps threshold = 0.033s, use 0.015s for safety)
+        if (Math.abs(currentTime - lastProcessedTime) > 0.015) {
+          lastProcessedTime = currentTime;
+
+          // Send new frame to MediaPipe (async, won't block drawing)
+          pose.send({ image: resultsVideo }).catch(error => {
+            console.error('Error processing frame:', error);
+          });
+        }
+
+        // Always draw the last known skeleton (keeps display smooth)
+        drawSkeleton();
+      }
+
+      // Draw the skeleton on canvas
+      function drawSkeleton() {
         const canvasCtx = resultsCanvas.getContext('2d');
 
         // Clear previous frame
         canvasCtx.save();
         canvasCtx.clearRect(0, 0, resultsCanvas.width, resultsCanvas.height);
 
-        // Draw pose skeleton if detected
-        if (results.poseLandmarks) {
+        // Draw pose skeleton if we have results
+        if (lastResults && lastResults.poseLandmarks) {
           // Draw skeleton connections (green lines)
           drawConnectors(
             canvasCtx,
-            results.poseLandmarks,
+            lastResults.poseLandmarks,
             POSE_CONNECTIONS,
             { color: '#00FF00', lineWidth: 4 }
           );
@@ -228,12 +246,17 @@
           // Draw joints (red dots)
           drawLandmarks(
             canvasCtx,
-            results.poseLandmarks,
+            lastResults.poseLandmarks,
             { color: '#FF0000', lineWidth: 2, radius: 6 }
           );
         }
 
         canvasCtx.restore();
+      }
+
+      // Store results from MediaPipe (called after processing each frame)
+      function onResults(results) {
+        lastResults = results;
       }
     });
   </script>
