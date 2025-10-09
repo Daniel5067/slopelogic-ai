@@ -35,6 +35,9 @@
       height: 100%;
       pointer-events: none;
     }
+    #processingCanvas {
+      display: none;
+    }
     #status {
       margin: 20px auto;
       padding: 10px;
@@ -60,14 +63,58 @@
     input[type="file"] {
       display: none;
     }
+    .settings {
+      max-width: 720px;
+      margin: 20px auto;
+      padding: 15px;
+      background: #fff;
+      border-radius: 8px;
+      text-align: left;
+    }
+    .settings label {
+      display: block;
+      margin: 10px 0 5px;
+      font-weight: 500;
+    }
+    .settings input[type="range"] {
+      width: 100%;
+    }
+    .settings-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 5px 0;
+    }
   </style>
 </head>
 <body>
   <h1>AI Ski Coach</h1>
   <p>Upload your ski video and watch the AI analyze your form in real-time.</p>
+  <p style="font-size: 14px; color: #666;">Optimized for distant skiers with enhanced detection.</p>
 
   <label for="videoUpload" class="upload-btn">Choose Video File</label>
   <input type="file" id="videoUpload" accept="video/*">
+
+  <div class="settings">
+    <h3 style="margin-top: 0;">Detection Settings</h3>
+    <div class="settings-row">
+      <label for="contrast">Contrast Enhancement:</label>
+      <span id="contrastValue">1.3</span>
+    </div>
+    <input type="range" id="contrast" min="1" max="2" step="0.1" value="1.3">
+
+    <div class="settings-row">
+      <label for="brightness">Brightness:</label>
+      <span id="brightnessValue">1.1</span>
+    </div>
+    <input type="range" id="brightness" min="0.8" max="1.5" step="0.1" value="1.1">
+
+    <div class="settings-row">
+      <label for="sharpness">Sharpness:</label>
+      <span id="sharpnessValue">1.5</span>
+    </div>
+    <input type="range" id="sharpness" min="0" max="3" step="0.5" value="1.5">
+  </div>
 
   <div id="status"></div>
 
@@ -75,6 +122,9 @@
     <video id="resultsVideo" controls playsinline></video>
     <canvas id="resultsCanvas"></canvas>
   </div>
+
+  <!-- Hidden canvas for preprocessing -->
+  <canvas id="processingCanvas"></canvas>
 
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1620248257/drawing_utils.js" crossorigin="anonymous"></script>
@@ -94,13 +144,44 @@
       const playerContainer = document.getElementById('playerContainer');
       const resultsVideo = document.getElementById('resultsVideo');
       const resultsCanvas = document.getElementById('resultsCanvas');
+      const processingCanvas = document.getElementById('processingCanvas');
+      const processingCtx = processingCanvas.getContext('2d', { willReadFrequently: true });
+
+      // Settings
+      const contrastSlider = document.getElementById('contrast');
+      const brightnessSlider = document.getElementById('brightness');
+      const sharpnessSlider = document.getElementById('sharpness');
+      const contrastValue = document.getElementById('contrastValue');
+      const brightnessValue = document.getElementById('brightnessValue');
+      const sharpnessValue = document.getElementById('sharpnessValue');
+
+      let settings = {
+        contrast: 1.3,
+        brightness: 1.1,
+        sharpness: 1.5
+      };
+
+      contrastSlider.addEventListener('input', (e) => {
+        settings.contrast = parseFloat(e.target.value);
+        contrastValue.textContent = settings.contrast;
+      });
+
+      brightnessSlider.addEventListener('input', (e) => {
+        settings.brightness = parseFloat(e.target.value);
+        brightnessValue.textContent = settings.brightness;
+      });
+
+      sharpnessSlider.addEventListener('input', (e) => {
+        settings.sharpness = parseFloat(e.target.value);
+        sharpnessValue.textContent = settings.sharpness;
+      });
 
       let poseInitialized = false;
       let pose;
 
-      // Initialize MediaPipe Pose
+      // Initialize MediaPipe Pose with MAXIMUM settings for distant detection
       try {
-        log('Initializing MediaPipe Pose...');
+        log('Initializing MediaPipe Pose with maximum model complexity...');
         pose = new Pose({
           locateFile: (file) => {
             return `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`;
@@ -108,16 +189,16 @@
         });
 
         pose.setOptions({
-          modelComplexity: 1,
+          modelComplexity: 2,  // Maximum complexity (0=lite, 1=full, 2=heavy)
           smoothLandmarks: true,
           enableSegmentation: false,
           smoothSegmentation: false,
-          minDetectionConfidence: 0.5,
-          minTrackingConfidence: 0.5
+          minDetectionConfidence: 0.3,  // Lower threshold for distant subjects
+          minTrackingConfidence: 0.3    // Lower threshold for better tracking
         });
 
         pose.onResults(onResults);
-        log('MediaPipe Pose initialized successfully!');
+        log('MediaPipe Pose initialized with heavy model (complexity: 2)');
         poseInitialized = true;
       } catch (error) {
         log('Error initializing MediaPipe: ' + error.message);
@@ -146,13 +227,15 @@
 
       // Video loaded and ready
       resultsVideo.addEventListener('loadedmetadata', () => {
-        log(`Video loaded! Duration: ${resultsVideo.duration.toFixed(2)}s. Click play to start analysis.`);
+        log(`Video loaded! Resolution: ${resultsVideo.videoWidth}x${resultsVideo.videoHeight}. Click play to start.`);
 
-        // Set canvas size to match video
+        // Set canvas sizes to FULL video resolution (no downscaling)
         resultsCanvas.width = resultsVideo.videoWidth;
         resultsCanvas.height = resultsVideo.videoHeight;
+        processingCanvas.width = resultsVideo.videoWidth;
+        processingCanvas.height = resultsVideo.videoHeight;
 
-        console.log(`Video dimensions: ${resultsVideo.videoWidth}x${resultsVideo.videoHeight}`);
+        console.log(`Processing at full resolution: ${resultsVideo.videoWidth}x${resultsVideo.videoHeight}`);
       });
 
       // Video error handling
@@ -163,7 +246,7 @@
 
       // When video starts playing
       resultsVideo.addEventListener('play', () => {
-        log('Video playing. AI analysis in progress...');
+        log('Video playing. Running AI analysis with enhanced detection...');
 
         if (!poseInitialized) {
           log('Warning: MediaPipe Pose not initialized!');
@@ -183,6 +266,73 @@
         log('Video ended. Upload another video to analyze.');
       });
 
+      // Preprocess video frame for better detection
+      function preprocessFrame(videoElement) {
+        const width = processingCanvas.width;
+        const height = processingCanvas.height;
+
+        // Draw current video frame
+        processingCtx.drawImage(videoElement, 0, 0, width, height);
+
+        // Get image data
+        const imageData = processingCtx.getImageData(0, 0, width, height);
+        const data = imageData.data;
+
+        // Apply contrast and brightness adjustments
+        for (let i = 0; i < data.length; i += 4) {
+          // Apply brightness and contrast
+          data[i] = ((data[i] / 255 - 0.5) * settings.contrast + 0.5) * 255 * settings.brightness;     // Red
+          data[i + 1] = ((data[i + 1] / 255 - 0.5) * settings.contrast + 0.5) * 255 * settings.brightness; // Green
+          data[i + 2] = ((data[i + 2] / 255 - 0.5) * settings.contrast + 0.5) * 255 * settings.brightness; // Blue
+        }
+
+        // Apply sharpness if needed
+        if (settings.sharpness > 0) {
+          imageData = applySharpen(imageData, settings.sharpness);
+        }
+
+        // Put processed image back
+        processingCtx.putImageData(imageData, 0, 0);
+
+        return processingCanvas;
+      }
+
+      // Apply sharpening filter
+      function applySharpen(imageData, amount) {
+        const width = imageData.width;
+        const height = imageData.height;
+        const data = imageData.data;
+        const output = processingCtx.createImageData(width, height);
+
+        // Sharpening kernel
+        const kernel = [
+          0, -1 * amount, 0,
+          -1 * amount, 1 + 4 * amount, -1 * amount,
+          0, -1 * amount, 0
+        ];
+
+        for (let y = 1; y < height - 1; y++) {
+          for (let x = 1; x < width - 1; x++) {
+            for (let c = 0; c < 3; c++) {
+              let sum = 0;
+              for (let ky = -1; ky <= 1; ky++) {
+                for (let kx = -1; kx <= 1; kx++) {
+                  const idx = ((y + ky) * width + (x + kx)) * 4 + c;
+                  const kidx = (ky + 1) * 3 + (kx + 1);
+                  sum += data[idx] * kernel[kidx];
+                }
+              }
+              const outIdx = (y * width + x) * 4 + c;
+              output.data[outIdx] = Math.max(0, Math.min(255, sum));
+            }
+            const outIdx = (y * width + x) * 4 + 3;
+            output.data[outIdx] = 255; // Alpha
+          }
+        }
+
+        return output;
+      }
+
       // Process video frames
       async function processVideoFrame() {
         if (resultsVideo.paused || resultsVideo.ended) {
@@ -190,7 +340,11 @@
         }
 
         try {
-          await pose.send({ image: resultsVideo });
+          // Preprocess the frame for better detection
+          const processedFrame = preprocessFrame(resultsVideo);
+
+          // Send preprocessed frame to MediaPipe
+          await pose.send({ image: processedFrame });
         } catch (error) {
           console.error('Error processing frame:', error);
         }
@@ -208,19 +362,19 @@
 
         // Draw pose landmarks if detected
         if (results.poseLandmarks) {
-          // Draw connections (skeleton lines)
+          // Draw connections (skeleton lines) - THICKER for visibility
           drawConnectors(
             canvasCtx,
             results.poseLandmarks,
             POSE_CONNECTIONS,
-            { color: '#00FF00', lineWidth: 4 }
+            { color: '#00FF00', lineWidth: 6 }
           );
 
-          // Draw landmarks (joints)
+          // Draw landmarks (joints) - LARGER for visibility
           drawLandmarks(
             canvasCtx,
             results.poseLandmarks,
-            { color: '#FF0000', lineWidth: 2, radius: 6 }
+            { color: '#FF0000', lineWidth: 3, radius: 8 }
           );
         }
 
