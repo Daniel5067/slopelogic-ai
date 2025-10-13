@@ -53,6 +53,244 @@
   <script>
     console.log('🟢 Script loaded successfully');
 
+    // ============================================
+    // IDEAL SKI FORM REFERENCE MODEL
+    // ============================================
+    const IDEAL_SKI_FORM = {
+      kneeAngle: {
+        min: 120,
+        max: 145,
+        unit: "degrees",
+        description: "Athletic stance with proper knee flex"
+      },
+      hipPosition: {
+        // Hip should be slightly forward - measured as horizontal offset
+        minForward: 0,  // cm
+        maxForward: 15,
+        unit: "cm",
+        description: "Hips slightly forward of shoulders for balance"
+      },
+      stanceWidth: {
+        // As percentage of shoulder width
+        minPercent: 95,
+        maxPercent: 115,
+        unit: "percent",
+        description: "Approximately shoulder-width stance"
+      },
+      torsoAngle: {
+        // Angle from vertical (0 = perfectly upright)
+        min: 5,   // slightly forward lean
+        max: 20,  // moderate forward lean
+        unit: "degrees",
+        description: "Slight forward lean in upper body"
+      },
+      weightDistribution: {
+        // Left/right balance percentage (50 = perfectly centered)
+        min: 45,
+        max: 55,
+        unit: "percent",
+        description: "Centered weight between both feet"
+      }
+    };
+
+    // ============================================
+    // BIOMECHANICAL ANALYSIS FUNCTIONS
+    // ============================================
+
+    // Calculate angle between three points (in degrees)
+    function calculateAngle(pointA, pointB, pointC) {
+      const radians = Math.atan2(pointC.y - pointB.y, pointC.x - pointB.x) -
+                      Math.atan2(pointA.y - pointB.y, pointA.x - pointB.x);
+      let angle = Math.abs(radians * 180.0 / Math.PI);
+      if (angle > 180.0) {
+        angle = 360 - angle;
+      }
+      return angle;
+    }
+
+    // Calculate distance between two points
+    function calculateDistance(pointA, pointB) {
+      const dx = pointB.x - pointA.x;
+      const dy = pointB.y - pointA.y;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    // Analyze ski form and compare to ideal
+    function analyzeSkiForm(landmarks) {
+      // MediaPipe Pose landmark indices
+      const LEFT_SHOULDER = 11;
+      const RIGHT_SHOULDER = 12;
+      const LEFT_HIP = 23;
+      const RIGHT_HIP = 24;
+      const LEFT_KNEE = 25;
+      const RIGHT_KNEE = 26;
+      const LEFT_ANKLE = 27;
+      const RIGHT_ANKLE = 28;
+      const NOSE = 0;
+
+      const analysis = {
+        kneeAngle: { left: null, right: null },
+        hipPosition: null,
+        stanceWidth: null,
+        torsoAngle: null,
+        weightDistribution: null,
+        feedback: []
+      };
+
+      // 1. Calculate knee angles
+      const leftKneeAngle = calculateAngle(
+        landmarks[LEFT_HIP],
+        landmarks[LEFT_KNEE],
+        landmarks[LEFT_ANKLE]
+      );
+      const rightKneeAngle = calculateAngle(
+        landmarks[RIGHT_HIP],
+        landmarks[RIGHT_KNEE],
+        landmarks[RIGHT_ANKLE]
+      );
+
+      analysis.kneeAngle.left = leftKneeAngle.toFixed(1);
+      analysis.kneeAngle.right = rightKneeAngle.toFixed(1);
+
+      // Check knee angle feedback
+      const avgKneeAngle = (leftKneeAngle + rightKneeAngle) / 2;
+      if (avgKneeAngle < IDEAL_SKI_FORM.kneeAngle.min) {
+        analysis.feedback.push({
+          metric: "Knee Angle",
+          status: "warning",
+          message: `Too much knee bend (${avgKneeAngle.toFixed(0)}°). Stand up slightly.`
+        });
+      } else if (avgKneeAngle > IDEAL_SKI_FORM.kneeAngle.max) {
+        analysis.feedback.push({
+          metric: "Knee Angle",
+          status: "warning",
+          message: `Legs too straight (${avgKneeAngle.toFixed(0)}°). Bend knees more.`
+        });
+      } else {
+        analysis.feedback.push({
+          metric: "Knee Angle",
+          status: "good",
+          message: `Good knee flex (${avgKneeAngle.toFixed(0)}°)`
+        });
+      }
+
+      // 2. Calculate hip position (horizontal offset from shoulders)
+      const leftShoulder = landmarks[LEFT_SHOULDER];
+      const rightShoulder = landmarks[RIGHT_SHOULDER];
+      const leftHip = landmarks[LEFT_HIP];
+      const rightHip = landmarks[RIGHT_HIP];
+
+      const shoulderMidX = (leftShoulder.x + rightShoulder.x) / 2;
+      const hipMidX = (leftHip.x + rightHip.x) / 2;
+      const hipOffset = (hipMidX - shoulderMidX) * 100; // Convert to percentage
+
+      analysis.hipPosition = hipOffset.toFixed(1);
+
+      if (hipOffset < -5) {
+        analysis.feedback.push({
+          metric: "Hip Position",
+          status: "warning",
+          message: "Hips too far back. Move weight forward."
+        });
+      } else if (hipOffset > 10) {
+        analysis.feedback.push({
+          metric: "Hip Position",
+          status: "warning",
+          message: "Hips too far forward. Shift weight back slightly."
+        });
+      } else {
+        analysis.feedback.push({
+          metric: "Hip Position",
+          status: "good",
+          message: "Good hip position"
+        });
+      }
+
+      // 3. Calculate stance width (as percentage of shoulder width)
+      const shoulderWidth = calculateDistance(leftShoulder, rightShoulder);
+      const ankleWidth = calculateDistance(landmarks[LEFT_ANKLE], landmarks[RIGHT_ANKLE]);
+      const stanceWidthPercent = (ankleWidth / shoulderWidth) * 100;
+
+      analysis.stanceWidth = stanceWidthPercent.toFixed(0);
+
+      if (stanceWidthPercent < IDEAL_SKI_FORM.stanceWidth.minPercent) {
+        analysis.feedback.push({
+          metric: "Stance Width",
+          status: "warning",
+          message: "Stance too narrow. Widen your feet."
+        });
+      } else if (stanceWidthPercent > IDEAL_SKI_FORM.stanceWidth.maxPercent) {
+        analysis.feedback.push({
+          metric: "Stance Width",
+          status: "warning",
+          message: "Stance too wide. Bring feet closer together."
+        });
+      } else {
+        analysis.feedback.push({
+          metric: "Stance Width",
+          status: "good",
+          message: "Good stance width"
+        });
+      }
+
+      // 4. Calculate torso angle (lean from vertical)
+      const shoulderMidY = (leftShoulder.y + rightShoulder.y) / 2;
+      const hipMidY = (leftHip.y + rightHip.y) / 2;
+      const torsoAngle = Math.atan2(Math.abs(hipMidX - shoulderMidX), Math.abs(hipMidY - shoulderMidY)) * 180 / Math.PI;
+
+      analysis.torsoAngle = torsoAngle.toFixed(1);
+
+      if (torsoAngle < IDEAL_SKI_FORM.torsoAngle.min) {
+        analysis.feedback.push({
+          metric: "Torso Angle",
+          status: "warning",
+          message: "Too upright. Lean forward slightly."
+        });
+      } else if (torsoAngle > IDEAL_SKI_FORM.torsoAngle.max) {
+        analysis.feedback.push({
+          metric: "Torso Angle",
+          status: "warning",
+          message: "Leaning too far forward. Stand up slightly."
+        });
+      } else {
+        analysis.feedback.push({
+          metric: "Torso Angle",
+          status: "good",
+          message: "Good forward lean"
+        });
+      }
+
+      // 5. Calculate weight distribution (left/right balance)
+      const leftAnkle = landmarks[LEFT_ANKLE];
+      const rightAnkle = landmarks[RIGHT_ANKLE];
+      const ankleMidX = (leftAnkle.x + rightAnkle.x) / 2;
+      const weightBalance = ((hipMidX - ankleMidX) / ankleWidth + 0.5) * 100;
+
+      analysis.weightDistribution = weightBalance.toFixed(0);
+
+      if (weightBalance < IDEAL_SKI_FORM.weightDistribution.min) {
+        analysis.feedback.push({
+          metric: "Weight Distribution",
+          status: "warning",
+          message: "Weight shifted to the left. Center your balance."
+        });
+      } else if (weightBalance > IDEAL_SKI_FORM.weightDistribution.max) {
+        analysis.feedback.push({
+          metric: "Weight Distribution",
+          status: "warning",
+          message: "Weight shifted to the right. Center your balance."
+        });
+      } else {
+        analysis.feedback.push({
+          metric: "Weight Distribution",
+          status: "good",
+          message: "Good weight balance"
+        });
+      }
+
+      return analysis;
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       console.log('🟢 DOMContentLoaded - page ready');
 
@@ -150,8 +388,26 @@
           canvasCtx.clearRect(0, 0, resultsCanvas.width, resultsCanvas.height);
 
           if (results.poseLandmarks) {
+              // Draw skeleton
               window.drawConnectors(canvasCtx, results.poseLandmarks, window.POSE_CONNECTIONS, { color: '#00FF00', lineWidth: 4 });
               window.drawLandmarks(canvasCtx, results.poseLandmarks, { color: '#FF0000', radius: 2 });
+
+              // Analyze ski form and log feedback (every 30 frames = ~1 second)
+              if (resultsCount % 30 === 0) {
+                const analysis = analyzeSkiForm(results.poseLandmarks);
+                console.log('📊 Ski Form Analysis:');
+                console.log('  Knee Angle (L/R):', analysis.kneeAngle.left + '° / ' + analysis.kneeAngle.right + '°');
+                console.log('  Hip Position:', analysis.hipPosition);
+                console.log('  Stance Width:', analysis.stanceWidth + '%');
+                console.log('  Torso Angle:', analysis.torsoAngle + '°');
+                console.log('  Weight Distribution:', analysis.weightDistribution + '%');
+                console.log('  Feedback:');
+                analysis.feedback.forEach(item => {
+                  const icon = item.status === 'good' ? '✅' : '⚠️';
+                  console.log(`    ${icon} ${item.metric}: ${item.message}`);
+                });
+                console.log('---');
+              }
           }
       }
     });
