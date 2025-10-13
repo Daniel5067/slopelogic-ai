@@ -336,6 +336,131 @@
     }
 
     // ============================================
+    // SUMMARY REPORT FUNCTIONS
+    // ============================================
+
+    // Calculate average scores for each metric from history
+    function calculateSummary(feedbackHistory) {
+      if (feedbackHistory.length === 0) return null;
+
+      // Initialize accumulators for each metric
+      const metricData = {};
+
+      // Collect all scores for each metric
+      feedbackHistory.forEach(feedbackArray => {
+        feedbackArray.forEach(item => {
+          if (!metricData[item.category]) {
+            metricData[item.category] = {
+              category: item.category,
+              scores: [],
+              messages: []
+            };
+          }
+          metricData[item.category].scores.push(item.score);
+          metricData[item.category].messages.push(item.message);
+        });
+      });
+
+      // Calculate averages and get most common message
+      const summary = Object.keys(metricData).map(category => {
+        const data = metricData[category];
+        const avgScore = Math.round(data.scores.reduce((a, b) => a + b, 0) / data.scores.length);
+
+        // Get most common message
+        const messageCounts = {};
+        data.messages.forEach(msg => {
+          messageCounts[msg] = (messageCounts[msg] || 0) + 1;
+        });
+        const mostCommonMessage = Object.keys(messageCounts).reduce((a, b) =>
+          messageCounts[a] > messageCounts[b] ? a : b
+        );
+
+        // Determine emoji based on average score
+        let emoji, status;
+        if (avgScore >= 80) {
+          emoji = '🟢';
+          status = 'good';
+        } else if (avgScore >= 60) {
+          emoji = '🟡';
+          status = 'warning';
+        } else {
+          emoji = '🔴';
+          status = 'error';
+        }
+
+        return {
+          category,
+          score: avgScore,
+          message: mostCommonMessage,
+          emoji,
+          status
+        };
+      });
+
+      return summary;
+    }
+
+    // Display summary report at end of video
+    function displaySummaryReport(summary) {
+      const feedbackPanel = document.getElementById('feedbackPanel');
+
+      // Sort metrics by score
+      const sortedByScore = [...summary].sort((a, b) => a.score - b.score);
+
+      // Get top 3 areas to improve (lowest scores)
+      const areasToImprove = sortedByScore.slice(0, 3);
+
+      // Get what you did well (highest scores) - take top 2-3
+      const strengths = sortedByScore.slice(-3).reverse().filter(item => item.score >= 70);
+
+      // Calculate overall score
+      const overallScore = Math.round(summary.reduce((sum, item) => sum + item.score, 0) / summary.length);
+
+      // Generate summary HTML
+      feedbackPanel.innerHTML = `
+        <div style="text-align: center; border-bottom: 2px solid rgba(255,255,255,0.3); padding-bottom: 15px; margin-bottom: 20px;">
+          <h2 style="margin: 0 0 10px 0; font-size: 24px;">📊 PERFORMANCE SUMMARY</h2>
+        </div>
+
+        <div style="font-size: 32px; font-weight: bold; text-align: center; margin-bottom: 25px; background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px;">
+          Overall Score: <span style="color: ${overallScore >= 80 ? '#4CAF50' : overallScore >= 60 ? '#FFC107' : '#F44336'}">${overallScore}/100</span>
+        </div>
+
+        <div style="margin-bottom: 25px;">
+          <h3 style="font-size: 18px; margin: 0 0 15px 0; color: #FFC107;">🎯 TOP 3 AREAS TO IMPROVE:</h3>
+          ${areasToImprove.map(item => `
+            <div style="margin-bottom: 15px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 8px; border-left: 4px solid #F44336;">
+              <div style="font-weight: bold; margin-bottom: 8px; font-size: 15px;">
+                ${item.emoji} ${item.category} <span style="float: right; color: #F44336;">${item.score}/100</span>
+              </div>
+              <div style="font-size: 14px; opacity: 0.9; padding-left: 10px;">
+                → ${item.message}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+
+        ${strengths.length > 0 ? `
+          <div style="margin-bottom: 25px;">
+            <h3 style="font-size: 18px; margin: 0 0 15px 0; color: #4CAF50;">✅ WHAT YOU DID WELL:</h3>
+            ${strengths.map(item => `
+              <div style="margin-bottom: 10px; padding: 12px; background: rgba(76, 175, 80, 0.15); border-radius: 8px; border-left: 4px solid #4CAF50;">
+                <span style="font-weight: bold;">${item.emoji} ${item.category}</span>
+                <span style="float: right; color: #4CAF50; font-weight: bold;">${item.score}/100</span>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+
+        <button onclick="location.reload()" style="width: 100%; padding: 15px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px;">
+          🔄 Analyze Another Video
+        </button>
+      `;
+
+      feedbackPanel.style.display = 'block';
+    }
+
+    // ============================================
     // DISPLAY FEEDBACK FUNCTION
     // ============================================
     function displayFeedback(feedback) {
@@ -384,6 +509,9 @@
       const resultsCanvas = document.getElementById('resultsCanvas');
       const feedbackPanel = document.getElementById('feedbackPanel');
 
+      // Data collection for summary report
+      let feedbackHistory = []; // Stores all feedback arrays throughout video
+
       console.log('Elements found:', {
         videoUpload: !!videoUpload,
         playerContainer: !!playerContainer,
@@ -417,6 +545,9 @@
                 type: file.type,
                 size: (file.size / 1024 / 1024).toFixed(2) + ' MB'
               });
+              // Reset data collection for new video
+              feedbackHistory = [];
+              feedbackPanel.style.display = 'none';
               playerContainer.classList.remove('hidden');
               resultsVideo.src = URL.createObjectURL(file);
               resultsVideo.load();
@@ -436,7 +567,6 @@
 
       resultsVideo.addEventListener('play', () => {
           console.log('🟢 Play button clicked - video playing');
-          feedbackPanel.style.display = 'block'; // Show feedback panel when video plays
           let frameCount = 0;
           const processVideo = async () => {
               if (resultsVideo.paused || resultsVideo.ended) {
@@ -455,6 +585,15 @@
 
       resultsVideo.addEventListener('pause', () => {
           console.log('⏸️ Video paused');
+      });
+
+      resultsVideo.addEventListener('ended', () => {
+          console.log('🏁 Video ended - generating summary report');
+          if (feedbackHistory.length > 0) {
+            const summary = calculateSummary(feedbackHistory);
+            displaySummaryReport(summary);
+            console.log('📊 Summary report displayed with', feedbackHistory.length, 'data points');
+          }
       });
 
       resultsVideo.addEventListener('error', (e) => {
@@ -478,22 +617,17 @@
               window.drawConnectors(canvasCtx, results.poseLandmarks, window.POSE_CONNECTIONS, { color: '#00FF00', lineWidth: 4 });
               window.drawLandmarks(canvasCtx, results.poseLandmarks, { color: '#FF0000', radius: 2 });
 
-              // Analyze ski form and update feedback panel (every 30 frames = ~1 second)
+              // Collect data for summary report (every 30 frames = ~1 second)
               if (resultsCount % 30 === 0) {
                 const feedbackArray = analyzeSkiForm(results.poseLandmarks);
 
-                // Update the visible feedback panel
-                displayFeedback(feedbackArray);
+                // Store feedback data for summary
+                feedbackHistory.push(feedbackArray);
 
-                // Log to console as well
+                // Log to console for debugging
                 const totalScore = feedbackArray.reduce((sum, item) => sum + item.score, 0);
                 const overallScore = Math.round(totalScore / feedbackArray.length);
-                console.log('📊 Ski Form Analysis:');
-                console.log('  Overall Score:', overallScore + '/100');
-                feedbackArray.forEach(item => {
-                  console.log(`  ${item.emoji} ${item.category}: ${item.score}/100 - ${item.message}`);
-                });
-                console.log('---');
+                console.log(`📊 Data collected (${feedbackHistory.length} samples) - Current score: ${overallScore}/100`);
               }
           }
       }
