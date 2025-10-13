@@ -31,7 +31,10 @@
       height: 100%;
     }
     #resultsVideo { z-index: 1; }
-    #resultsCanvas { z-index: 2; }
+    #resultsCanvas {
+      z-index: 2;
+      pointer-events: none; /* Allow clicks to pass through to video controls */
+    }
   </style>
 </head>
 <body>
@@ -48,14 +51,30 @@
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1620248257/drawing_utils.js" crossorigin="anonymous"></script>
 
   <script>
+    console.log('🟢 Script loaded successfully');
+
     document.addEventListener('DOMContentLoaded', () => {
+      console.log('🟢 DOMContentLoaded - page ready');
+
       const videoUpload = document.getElementById('videoUpload');
       const playerContainer = document.getElementById('playerContainer');
       const resultsVideo = document.getElementById('resultsVideo');
       const resultsCanvas = document.getElementById('resultsCanvas');
 
+      console.log('Elements found:', {
+        videoUpload: !!videoUpload,
+        playerContainer: !!playerContainer,
+        resultsVideo: !!resultsVideo,
+        resultsCanvas: !!resultsCanvas
+      });
+
+      console.log('🟡 Initializing MediaPipe Pose...');
       const pose = new Pose({
-          locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`
+          locateFile: (file) => {
+            const path = `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`;
+            console.log('MediaPipe loading:', file);
+            return path;
+          }
       });
       pose.setOptions({
           modelComplexity: 1,
@@ -64,20 +83,45 @@
           minTrackingConfidence: 0.5
       });
       pose.onResults(onResults);
+      console.log('✅ MediaPipe Pose initialized');
 
       videoUpload.addEventListener('change', (event) => {
+          console.log('🟢 Upload button clicked - file selected');
           const file = event.target.files[0];
           if (file) {
+              console.log('📹 File details:', {
+                name: file.name,
+                type: file.type,
+                size: (file.size / 1024 / 1024).toFixed(2) + ' MB'
+              });
               playerContainer.classList.remove('hidden');
               resultsVideo.src = URL.createObjectURL(file);
               resultsVideo.load();
+              console.log('✅ Video source set, loading...');
+          } else {
+              console.log('❌ No file selected');
           }
       });
 
+      resultsVideo.addEventListener('loadeddata', () => {
+          console.log('🟢 Video loaded successfully', {
+            width: resultsVideo.videoWidth,
+            height: resultsVideo.videoHeight,
+            duration: resultsVideo.duration.toFixed(2) + 's'
+          });
+      });
+
       resultsVideo.addEventListener('play', () => {
+          console.log('🟢 Play button clicked - video playing');
+          let frameCount = 0;
           const processVideo = async () => {
               if (resultsVideo.paused || resultsVideo.ended) {
+                  console.log('⏸️ Video stopped, ending processing');
                   return;
+              }
+              frameCount++;
+              if (frameCount % 60 === 0) {
+                console.log(`Processing frame ${frameCount} at ${resultsVideo.currentTime.toFixed(2)}s`);
               }
               await pose.send({ image: resultsVideo });
               requestAnimationFrame(processVideo);
@@ -85,7 +129,21 @@
           requestAnimationFrame(processVideo);
       });
 
+      resultsVideo.addEventListener('pause', () => {
+          console.log('⏸️ Video paused');
+      });
+
+      resultsVideo.addEventListener('error', (e) => {
+          console.error('❌ Video error:', e);
+      });
+
+      let resultsCount = 0;
       function onResults(results) {
+          resultsCount++;
+          if (resultsCount % 60 === 0) {
+            console.log(`onResults called ${resultsCount} times, landmarks detected:`, !!results.poseLandmarks);
+          }
+
           const canvasCtx = resultsCanvas.getContext('2d');
           resultsCanvas.width = resultsVideo.videoWidth;
           resultsCanvas.height = resultsVideo.videoHeight;
