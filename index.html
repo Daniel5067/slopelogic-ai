@@ -138,16 +138,20 @@
       const RIGHT_KNEE = 26;
       const LEFT_ANKLE = 27;
       const RIGHT_ANKLE = 28;
-      const NOSE = 0;
 
-      const analysis = {
-        kneeAngle: { left: null, right: null },
-        hipPosition: null,
-        stanceWidth: null,
-        torsoAngle: null,
-        weightDistribution: null,
-        feedback: []
-      };
+      const feedback = [];
+
+      // Helper function to calculate score based on how close value is to ideal range
+      function calculateScore(value, min, max) {
+        if (value >= min && value <= max) {
+          return 100; // Perfect - within ideal range
+        }
+        const midpoint = (min + max) / 2;
+        const tolerance = (max - min) / 2;
+        const deviation = Math.abs(value - midpoint);
+        const score = Math.max(0, 100 - (deviation / tolerance) * 50);
+        return Math.round(score);
+      }
 
       // 1. Calculate knee angles
       const leftKneeAngle = calculateAngle(
@@ -161,28 +165,32 @@
         landmarks[RIGHT_ANKLE]
       );
 
-      analysis.kneeAngle.left = leftKneeAngle.toFixed(1);
-      analysis.kneeAngle.right = rightKneeAngle.toFixed(1);
-
-      // Check knee angle feedback
       const avgKneeAngle = (leftKneeAngle + rightKneeAngle) / 2;
+      const kneeScore = calculateScore(avgKneeAngle, IDEAL_SKI_FORM.kneeAngle.min, IDEAL_SKI_FORM.kneeAngle.max);
+
       if (avgKneeAngle < IDEAL_SKI_FORM.kneeAngle.min) {
-        analysis.feedback.push({
-          metric: "Knee Angle",
-          status: "warning",
-          message: `Too much knee bend (${avgKneeAngle.toFixed(0)}°). Stand up slightly.`
+        feedback.push({
+          category: "Knee Angle",
+          emoji: avgKneeAngle < 110 ? "🔴" : "🟡",
+          status: avgKneeAngle < 110 ? "error" : "warning",
+          message: `Too much knee bend (${avgKneeAngle.toFixed(0)}°). Stand up slightly.`,
+          score: kneeScore
         });
       } else if (avgKneeAngle > IDEAL_SKI_FORM.kneeAngle.max) {
-        analysis.feedback.push({
-          metric: "Knee Angle",
-          status: "warning",
-          message: `Legs too straight (${avgKneeAngle.toFixed(0)}°). Bend knees more.`
+        feedback.push({
+          category: "Knee Angle",
+          emoji: avgKneeAngle > 155 ? "🔴" : "🟡",
+          status: avgKneeAngle > 155 ? "error" : "warning",
+          message: `Legs too straight (${avgKneeAngle.toFixed(0)}°). Bend knees more.`,
+          score: kneeScore
         });
       } else {
-        analysis.feedback.push({
-          metric: "Knee Angle",
+        feedback.push({
+          category: "Knee Angle",
+          emoji: "🟢",
           status: "good",
-          message: `Good knee flex (${avgKneeAngle.toFixed(0)}°)`
+          message: `Perfect knee bend (${avgKneeAngle.toFixed(0)}°)`,
+          score: kneeScore
         });
       }
 
@@ -196,25 +204,31 @@
       const hipMidX = (leftHip.x + rightHip.x) / 2;
       const hipOffset = (hipMidX - shoulderMidX) * 100; // Convert to percentage
 
-      analysis.hipPosition = hipOffset.toFixed(1);
+      const hipScore = calculateScore(hipOffset, -5, 10);
 
       if (hipOffset < -5) {
-        analysis.feedback.push({
-          metric: "Hip Position",
-          status: "warning",
-          message: "Hips too far back. Move weight forward."
+        feedback.push({
+          category: "Hip Position",
+          emoji: hipOffset < -15 ? "🔴" : "🟡",
+          status: hipOffset < -15 ? "error" : "warning",
+          message: "Hips too far back. Move weight forward.",
+          score: hipScore
         });
       } else if (hipOffset > 10) {
-        analysis.feedback.push({
-          metric: "Hip Position",
-          status: "warning",
-          message: "Hips too far forward. Shift weight back slightly."
+        feedback.push({
+          category: "Hip Position",
+          emoji: hipOffset > 20 ? "🔴" : "🟡",
+          status: hipOffset > 20 ? "error" : "warning",
+          message: "Hips too far forward. Shift weight back slightly.",
+          score: hipScore
         });
       } else {
-        analysis.feedback.push({
-          metric: "Hip Position",
+        feedback.push({
+          category: "Hip Position",
+          emoji: "🟢",
           status: "good",
-          message: "Good hip position"
+          message: "Perfect hip alignment",
+          score: hipScore
         });
       }
 
@@ -223,25 +237,31 @@
       const ankleWidth = calculateDistance(landmarks[LEFT_ANKLE], landmarks[RIGHT_ANKLE]);
       const stanceWidthPercent = (ankleWidth / shoulderWidth) * 100;
 
-      analysis.stanceWidth = stanceWidthPercent.toFixed(0);
+      const stanceScore = calculateScore(stanceWidthPercent, IDEAL_SKI_FORM.stanceWidth.minPercent, IDEAL_SKI_FORM.stanceWidth.maxPercent);
 
       if (stanceWidthPercent < IDEAL_SKI_FORM.stanceWidth.minPercent) {
-        analysis.feedback.push({
-          metric: "Stance Width",
-          status: "warning",
-          message: "Stance too narrow. Widen your feet."
+        feedback.push({
+          category: "Stance Width",
+          emoji: stanceWidthPercent < 80 ? "🔴" : "🟡",
+          status: stanceWidthPercent < 80 ? "error" : "warning",
+          message: "Stance too narrow. Widen your feet to shoulder width.",
+          score: stanceScore
         });
       } else if (stanceWidthPercent > IDEAL_SKI_FORM.stanceWidth.maxPercent) {
-        analysis.feedback.push({
-          metric: "Stance Width",
-          status: "warning",
-          message: "Stance too wide. Bring feet closer together."
+        feedback.push({
+          category: "Stance Width",
+          emoji: stanceWidthPercent > 130 ? "🔴" : "🟡",
+          status: stanceWidthPercent > 130 ? "error" : "warning",
+          message: "Stance too wide. Bring feet closer together.",
+          score: stanceScore
         });
       } else {
-        analysis.feedback.push({
-          metric: "Stance Width",
+        feedback.push({
+          category: "Stance Width",
+          emoji: "🟢",
           status: "good",
-          message: "Good stance width"
+          message: "Excellent stance width",
+          score: stanceScore
         });
       }
 
@@ -250,25 +270,31 @@
       const hipMidY = (leftHip.y + rightHip.y) / 2;
       const torsoAngle = Math.atan2(Math.abs(hipMidX - shoulderMidX), Math.abs(hipMidY - shoulderMidY)) * 180 / Math.PI;
 
-      analysis.torsoAngle = torsoAngle.toFixed(1);
+      const torsoScore = calculateScore(torsoAngle, IDEAL_SKI_FORM.torsoAngle.min, IDEAL_SKI_FORM.torsoAngle.max);
 
       if (torsoAngle < IDEAL_SKI_FORM.torsoAngle.min) {
-        analysis.feedback.push({
-          metric: "Torso Angle",
-          status: "warning",
-          message: "Too upright. Lean forward slightly."
+        feedback.push({
+          category: "Torso Angle",
+          emoji: torsoAngle < 2 ? "🔴" : "🟡",
+          status: torsoAngle < 2 ? "error" : "warning",
+          message: "Too upright. Lean forward slightly for better control.",
+          score: torsoScore
         });
       } else if (torsoAngle > IDEAL_SKI_FORM.torsoAngle.max) {
-        analysis.feedback.push({
-          metric: "Torso Angle",
-          status: "warning",
-          message: "Leaning too far forward. Stand up slightly."
+        feedback.push({
+          category: "Torso Angle",
+          emoji: torsoAngle > 30 ? "🔴" : "🟡",
+          status: torsoAngle > 30 ? "error" : "warning",
+          message: "Leaning too far forward. Stand up slightly.",
+          score: torsoScore
         });
       } else {
-        analysis.feedback.push({
-          metric: "Torso Angle",
+        feedback.push({
+          category: "Torso Angle",
+          emoji: "🟢",
           status: "good",
-          message: "Good forward lean"
+          message: "Perfect forward lean",
+          score: torsoScore
         });
       }
 
@@ -278,29 +304,35 @@
       const ankleMidX = (leftAnkle.x + rightAnkle.x) / 2;
       const weightBalance = ((hipMidX - ankleMidX) / ankleWidth + 0.5) * 100;
 
-      analysis.weightDistribution = weightBalance.toFixed(0);
+      const weightScore = calculateScore(weightBalance, IDEAL_SKI_FORM.weightDistribution.min, IDEAL_SKI_FORM.weightDistribution.max);
 
       if (weightBalance < IDEAL_SKI_FORM.weightDistribution.min) {
-        analysis.feedback.push({
-          metric: "Weight Distribution",
-          status: "warning",
-          message: "Weight shifted to the left. Center your balance."
+        feedback.push({
+          category: "Weight Distribution",
+          emoji: weightBalance < 35 ? "🔴" : "🟡",
+          status: weightBalance < 35 ? "error" : "warning",
+          message: "Weight shifted to the left. Center your balance.",
+          score: weightScore
         });
       } else if (weightBalance > IDEAL_SKI_FORM.weightDistribution.max) {
-        analysis.feedback.push({
-          metric: "Weight Distribution",
-          status: "warning",
-          message: "Weight shifted to the right. Center your balance."
+        feedback.push({
+          category: "Weight Distribution",
+          emoji: weightBalance > 65 ? "🔴" : "🟡",
+          status: weightBalance > 65 ? "error" : "warning",
+          message: "Weight shifted to the right. Center your balance.",
+          score: weightScore
         });
       } else {
-        analysis.feedback.push({
-          metric: "Weight Distribution",
+        feedback.push({
+          category: "Weight Distribution",
+          emoji: "🟢",
           status: "good",
-          message: "Good weight balance"
+          message: "Perfect weight balance",
+          score: weightScore
         });
       }
 
-      return analysis;
+      return feedback;
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -410,12 +442,11 @@
 
               // Analyze ski form and update feedback panel (every 30 frames = ~1 second)
               if (resultsCount % 30 === 0) {
-                const analysis = analyzeSkiForm(results.poseLandmarks);
+                const feedbackArray = analyzeSkiForm(results.poseLandmarks);
 
-                // Calculate overall score (percentage of metrics that are "good")
-                const goodCount = analysis.feedback.filter(f => f.status === 'good').length;
-                const totalCount = analysis.feedback.length;
-                const overallScore = Math.round((goodCount / totalCount) * 100);
+                // Calculate overall score (average of all metric scores)
+                const totalScore = feedbackArray.reduce((sum, item) => sum + item.score, 0);
+                const overallScore = Math.round(totalScore / feedbackArray.length);
 
                 // Update score display with color coding
                 scoreValue.textContent = overallScore + '%';
@@ -428,12 +459,11 @@
                 }
 
                 // Update feedback list
-                feedbackList.innerHTML = analysis.feedback.map(item => {
-                  const icon = item.status === 'good' ? '✅' : '⚠️';
-                  const color = item.status === 'good' ? '#4CAF50' : '#FFC107';
+                feedbackList.innerHTML = feedbackArray.map(item => {
+                  const color = item.status === 'good' ? '#4CAF50' : (item.status === 'warning' ? '#FFC107' : '#F44336');
                   return `
                     <div style="margin-bottom: 12px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; border-left: 4px solid ${color};">
-                      <div style="font-weight: bold; margin-bottom: 4px;">${icon} ${item.metric}</div>
+                      <div style="font-weight: bold; margin-bottom: 4px;">${item.emoji} ${item.category} <span style="float: right; font-size: 14px;">${item.score}%</span></div>
                       <div style="font-size: 14px; opacity: 0.9;">${item.message}</div>
                     </div>
                   `;
@@ -442,11 +472,9 @@
                 // Log to console as well
                 console.log('📊 Ski Form Analysis:');
                 console.log('  Overall Score:', overallScore + '%');
-                console.log('  Knee Angle (L/R):', analysis.kneeAngle.left + '° / ' + analysis.kneeAngle.right + '°');
-                console.log('  Hip Position:', analysis.hipPosition);
-                console.log('  Stance Width:', analysis.stanceWidth + '%');
-                console.log('  Torso Angle:', analysis.torsoAngle + '°');
-                console.log('  Weight Distribution:', analysis.weightDistribution + '%');
+                feedbackArray.forEach(item => {
+                  console.log(`  ${item.emoji} ${item.category}: ${item.score}% - ${item.message}`);
+                });
                 console.log('---');
               }
           }
