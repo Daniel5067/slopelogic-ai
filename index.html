@@ -335,6 +335,46 @@
       return feedback;
     }
 
+    // ============================================
+    // DISPLAY FEEDBACK FUNCTION
+    // ============================================
+    function displayFeedback(feedback) {
+      const feedbackList = document.getElementById('feedbackList');
+      const scoreValue = document.getElementById('scoreValue');
+
+      // Calculate overall score from all feedback items
+      const scores = feedback.map(f => f.score);
+      const overall = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+
+      // Update the overall score display with appropriate color
+      scoreValue.textContent = overall + '/100';
+      if (overall >= 80) {
+        scoreValue.style.color = '#4CAF50'; // Green for great
+      } else if (overall >= 60) {
+        scoreValue.style.color = '#FFC107'; // Yellow for okay
+      } else {
+        scoreValue.style.color = '#F44336'; // Red for needs work
+      }
+
+      // Generate HTML for each feedback item
+      feedbackList.innerHTML = feedback.map(item => {
+        // Choose border color based on status
+        const borderColor = item.status === 'good' ? '#4CAF50' :
+                           item.status === 'warning' ? '#FFC107' : '#F44336';
+
+        return `
+          <div style="margin-bottom: 15px; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 8px; border-left: 4px solid ${borderColor};">
+            <div style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">
+              ${item.emoji} ${item.category}
+            </div>
+            <div style="font-size: 13px; opacity: 0.9;">
+              ${item.message}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       console.log('🟢 DOMContentLoaded - page ready');
 
@@ -343,8 +383,6 @@
       const resultsVideo = document.getElementById('resultsVideo');
       const resultsCanvas = document.getElementById('resultsCanvas');
       const feedbackPanel = document.getElementById('feedbackPanel');
-      const scoreValue = document.getElementById('scoreValue');
-      const feedbackList = document.getElementById('feedbackList');
 
       console.log('Elements found:', {
         videoUpload: !!videoUpload,
@@ -444,36 +482,16 @@
               if (resultsCount % 30 === 0) {
                 const feedbackArray = analyzeSkiForm(results.poseLandmarks);
 
-                // Calculate overall score (average of all metric scores)
-                const totalScore = feedbackArray.reduce((sum, item) => sum + item.score, 0);
-                const overallScore = Math.round(totalScore / feedbackArray.length);
-
-                // Update score display with color coding
-                scoreValue.textContent = overallScore + '%';
-                if (overallScore >= 80) {
-                  scoreValue.style.color = '#4CAF50'; // Green
-                } else if (overallScore >= 60) {
-                  scoreValue.style.color = '#FFC107'; // Yellow
-                } else {
-                  scoreValue.style.color = '#F44336'; // Red
-                }
-
-                // Update feedback list
-                feedbackList.innerHTML = feedbackArray.map(item => {
-                  const color = item.status === 'good' ? '#4CAF50' : (item.status === 'warning' ? '#FFC107' : '#F44336');
-                  return `
-                    <div style="margin-bottom: 12px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px; border-left: 4px solid ${color};">
-                      <div style="font-weight: bold; margin-bottom: 4px;">${item.emoji} ${item.category} <span style="float: right; font-size: 14px;">${item.score}%</span></div>
-                      <div style="font-size: 14px; opacity: 0.9;">${item.message}</div>
-                    </div>
-                  `;
-                }).join('');
+                // Update the visible feedback panel
+                displayFeedback(feedbackArray);
 
                 // Log to console as well
+                const totalScore = feedbackArray.reduce((sum, item) => sum + item.score, 0);
+                const overallScore = Math.round(totalScore / feedbackArray.length);
                 console.log('📊 Ski Form Analysis:');
-                console.log('  Overall Score:', overallScore + '%');
+                console.log('  Overall Score:', overallScore + '/100');
                 feedbackArray.forEach(item => {
-                  console.log(`  ${item.emoji} ${item.category}: ${item.score}% - ${item.message}`);
+                  console.log(`  ${item.emoji} ${item.category}: ${item.score}/100 - ${item.message}`);
                 });
                 console.log('---');
               }
