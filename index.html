@@ -1,12 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
-  <title>AI Ski Coach - Slope Logic v2025.10.09.1410</title>
+  <title>Slope Logic (Working)</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -16,350 +11,90 @@
       color: #333;
     }
     .hidden {
-      display: none !important;
+      display: none;
     }
     #playerContainer {
       position: relative;
       width: 100%;
       max-width: 720px;
-      min-height: 400px;
+      aspect-ratio: 16 / 9;
       margin: 20px auto;
       background-color: #000;
       border-radius: 8px;
       overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
     }
-    #resultsVideo {
-      width: 100%;
-      height: auto;
-      display: block;
-      position: relative;
-      z-index: 1;
-    }
-    #resultsCanvas {
+    #resultsVideo, #resultsCanvas {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      pointer-events: none;
-      z-index: 2;
     }
-    #status {
-      margin: 20px auto;
-      padding: 10px;
-      max-width: 720px;
-      background: #fff;
-      border-radius: 8px;
-      font-size: 14px;
-      color: #666;
-    }
-    .upload-btn {
-      padding: 12px 24px;
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 16px;
-      margin: 20px 0;
-    }
-    .upload-btn:hover {
-      opacity: 0.9;
-    }
-    input[type="file"] {
-      display: none;
-    }
+    #resultsVideo { z-index: 1; }
+    #resultsCanvas { z-index: 2; }
   </style>
 </head>
 <body>
   <h1>AI Ski Coach</h1>
-  <p>Upload your ski video and watch real-time pose detection.</p>
-  <p style="font-size: 12px; color: #999;">Version: 2025.10.09.1410 🔵 FIXED CDN LOADING</p>
-
-  <label for="videoUpload" class="upload-btn">Choose Video File</label>
+  <p>Upload your ski video. The AI analysis will appear when you press play.</p>
   <input type="file" id="videoUpload" accept="video/*">
 
-  <div id="status"></div>
-
   <div id="playerContainer" class="hidden">
-    <video id="resultsVideo" controls playsinline></video>
+    <video id="resultsVideo" controls></video>
     <canvas id="resultsCanvas"></canvas>
   </div>
 
-  <!-- MediaPipe Scripts from CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1620248257/drawing_utils.js" crossorigin="anonymous"></script>
 
   <script>
-    // ULTRA VISIBLE DEBUG - THIS WILL ALERT IF PAGE LOADS
-    console.log('🔴🔴🔴 JAVASCRIPT FILE LOADED - VERSION 2025.10.09.1410 - CDN FIX 🔴🔴🔴');
-    console.log('Timestamp:', new Date().toISOString());
-    console.log('🔴 If you see this, the new version is loaded!');
-
-    // Uncomment to show alert (annoying but proves new code is running)
-    // alert('🔴 NEW VERSION LOADED - Check console for red markers!');
-
-    const status = document.getElementById('status');
-
-    function log(message) {
-      console.log(message);
-      status.textContent = message;
-    }
-
     document.addEventListener('DOMContentLoaded', () => {
-      console.log('🟢 DOMContentLoaded event fired');
-      log('Ready to upload video.');
-
       const videoUpload = document.getElementById('videoUpload');
       const playerContainer = document.getElementById('playerContainer');
       const resultsVideo = document.getElementById('resultsVideo');
       const resultsCanvas = document.getElementById('resultsCanvas');
 
-      let poseInitialized = false;
-      let pose;
-      let lastProcessedTime = -1;
-      let lastResults = null;
-
-      // Create offscreen canvas for processing video frames
-      const offscreenCanvas = document.createElement('canvas');
-      const offscreenCtx = offscreenCanvas.getContext('2d', { willReadFrequently: true });
-      console.log('Offscreen canvas created for MediaPipe processing');
-
-      // Initialize MediaPipe Pose with CDN paths
-      try {
-        console.log('🔵 Initializing MediaPipe Pose from CDN...');
-        log('Initializing MediaPipe Pose...');
-
-        pose = new Pose({
-          locateFile: (file) => {
-            const path = `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
-            console.log('MediaPipe loading file:', file, '→', path);
-            return path;
-          }
-        });
-
-        console.log('🔵 Setting MediaPipe options...');
-        pose.setOptions({
-          modelComplexity: 1,  // Medium complexity (0=lite, 1=full, 2=heavy)
+      const pose = new Pose({
+          locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`
+      });
+      pose.setOptions({
+          modelComplexity: 1,
           smoothLandmarks: true,
-          enableSegmentation: false,
           minDetectionConfidence: 0.5,
           minTrackingConfidence: 0.5
-        });
+      });
+      pose.onResults(onResults);
 
-        console.log('🔵 Registering onResults callback...');
-        pose.onResults(onResults);
-
-        console.log('✅ MediaPipe Pose initialized successfully!');
-        log('MediaPipe Pose ready.');
-        poseInitialized = true;
-      } catch (error) {
-        console.error('❌ Error initializing MediaPipe:', error);
-        log('Error initializing MediaPipe: ' + error.message);
-        console.error('Full error:', error);
-      }
-
-      // Handle video upload
-      videoUpload.addEventListener('change', async (event) => {
-        const file = event.target.files[0];
-        if (!file) {
-          log('No file selected.');
-          return;
-        }
-
-        log(`Video selected: ${file.name}`);
-
-        // Show player container
-        playerContainer.classList.remove('hidden');
-
-        // Set video source
-        const videoURL = URL.createObjectURL(file);
-        resultsVideo.src = videoURL;
-        resultsVideo.style.display = 'block';
-
-        try {
-          await resultsVideo.load();
-          log('Video loading...');
-        } catch (error) {
-          console.error('Error loading video:', error);
-          log('Error loading video.');
-        }
+      videoUpload.addEventListener('change', (event) => {
+          const file = event.target.files[0];
+          if (file) {
+              playerContainer.classList.remove('hidden');
+              resultsVideo.src = URL.createObjectURL(file);
+              resultsVideo.load();
+          }
       });
 
-      // Update canvas size to match video
-      function updateCanvasSize() {
-        resultsCanvas.width = resultsVideo.videoWidth;
-        resultsCanvas.height = resultsVideo.videoHeight;
-        console.log(`Canvas size: ${resultsCanvas.width}x${resultsCanvas.height}`);
-      }
-
-      resultsVideo.addEventListener('loadedmetadata', () => {
-        log(`Video loaded! Resolution: ${resultsVideo.videoWidth}x${resultsVideo.videoHeight}. Press play.`);
-        updateCanvasSize();
-      });
-
-      resultsVideo.addEventListener('loadeddata', updateCanvasSize);
-      window.addEventListener('resize', updateCanvasSize);
-
-      resultsVideo.addEventListener('error', (e) => {
-        log('Error loading video.');
-        console.error('Video error:', e);
-      });
-
-      // When video starts playing
       resultsVideo.addEventListener('play', () => {
-        console.log('=== PLAY EVENT TRIGGERED ===');
-        console.log('Video readyState:', resultsVideo.readyState, '(4 = HAVE_ENOUGH_DATA)');
-        console.log('Video dimensions:', resultsVideo.videoWidth, 'x', resultsVideo.videoHeight);
-        log('Video playing. Running pose detection...');
-
-        if (!poseInitialized) {
-          console.error('MediaPipe Pose NOT initialized!');
-          log('MediaPipe Pose not initialized!');
-          return;
-        }
-
-        if (resultsVideo.videoWidth === 0 || resultsVideo.videoHeight === 0) {
-          console.error('Video dimensions are 0! Video may not be loaded yet.');
-          return;
-        }
-
-        console.log('Starting processAndDrawFrame loop...');
-        // Start the hybrid processing/drawing loop
-        processAndDrawFrame();
+          const processVideo = async () => {
+              if (resultsVideo.paused || resultsVideo.ended) {
+                  return;
+              }
+              await pose.send({ image: resultsVideo });
+              requestAnimationFrame(processVideo);
+          };
+          requestAnimationFrame(processVideo);
       });
 
-      resultsVideo.addEventListener('pause', () => {
-        console.log('=== VIDEO PAUSED ===');
-        log('Video paused.');
-      });
-
-      resultsVideo.addEventListener('ended', () => {
-        console.log('=== VIDEO ENDED ===');
-        log('Video ended.');
-      });
-
-      let frameCount = 0;
-      let drawCount = 0;
-
-      // Hybrid approach: Process new frames, but draw smoothly at 60fps
-      function processAndDrawFrame() {
-        frameCount++;
-        if (frameCount % 60 === 0) {
-          console.log(`processAndDrawFrame called ${frameCount} times, currentTime: ${resultsVideo.currentTime.toFixed(2)}s`);
-        }
-
-        // Continue loop even if paused (will just skip processing)
-        requestAnimationFrame(processAndDrawFrame);
-
-        if (resultsVideo.paused || resultsVideo.ended) {
-          if (frameCount % 60 === 0) {
-            console.log('Video paused or ended, skipping processing');
-          }
-          return;
-        }
-
-        // Check if video is ready (HAVE_ENOUGH_DATA)
-        if (resultsVideo.readyState !== 4) {
-          if (frameCount % 60 === 0) {
-            console.log('Video not ready yet, readyState:', resultsVideo.readyState);
-          }
-          return;
-        }
-
-        const currentTime = resultsVideo.currentTime;
-
-        // Only process if we're on a new video frame (~30fps threshold = 0.033s, use 0.015s for safety)
-        if (Math.abs(currentTime - lastProcessedTime) > 0.015) {
-          console.log(`New frame detected at time ${currentTime.toFixed(3)}s (last: ${lastProcessedTime.toFixed(3)}s) - processing via offscreen canvas`);
-          lastProcessedTime = currentTime;
-
-          // Draw current video frame to offscreen canvas
-          try {
-            // Set offscreen canvas size to match video
-            if (offscreenCanvas.width !== resultsVideo.videoWidth || offscreenCanvas.height !== resultsVideo.videoHeight) {
-              offscreenCanvas.width = resultsVideo.videoWidth;
-              offscreenCanvas.height = resultsVideo.videoHeight;
-              console.log(`Offscreen canvas sized to ${offscreenCanvas.width}x${offscreenCanvas.height}`);
-            }
-
-            // Draw current video frame to offscreen canvas
-            offscreenCtx.drawImage(resultsVideo, 0, 0, offscreenCanvas.width, offscreenCanvas.height);
-
-            // Send offscreen canvas to MediaPipe (async, won't block drawing)
-            pose.send({ image: offscreenCanvas }).catch(error => {
-              console.error('Error sending frame to MediaPipe:', error);
-            });
-          } catch (error) {
-            console.error('Error drawing video to offscreen canvas:', error);
-          }
-        }
-
-        // Always draw the last known skeleton (keeps display smooth)
-        drawSkeleton();
-      }
-
-      // Draw the skeleton on canvas
-      function drawSkeleton() {
-        drawCount++;
-
-        const canvasCtx = resultsCanvas.getContext('2d');
-
-        if (!canvasCtx) {
-          console.error('Canvas context is null!');
-          return;
-        }
-
-        if (drawCount % 60 === 0) {
-          console.log(`drawSkeleton called ${drawCount} times. Canvas: ${resultsCanvas.width}x${resultsCanvas.height}, lastResults:`, lastResults ? 'EXISTS' : 'NULL');
-        }
-
-        // Clear previous frame
-        canvasCtx.save();
-        canvasCtx.clearRect(0, 0, resultsCanvas.width, resultsCanvas.height);
-
-        // Draw pose skeleton if we have results
-        if (lastResults && lastResults.poseLandmarks) {
-          if (drawCount % 60 === 0) {
-            console.log('Drawing skeleton with', lastResults.poseLandmarks.length, 'landmarks');
-          }
-
-          // Draw skeleton connections (green lines)
-          drawConnectors(
-            canvasCtx,
-            lastResults.poseLandmarks,
-            POSE_CONNECTIONS,
-            { color: '#00FF00', lineWidth: 4 }
-          );
-
-          // Draw joints (red dots)
-          drawLandmarks(
-            canvasCtx,
-            lastResults.poseLandmarks,
-            { color: '#FF0000', lineWidth: 2, radius: 6 }
-          );
-
-          if (drawCount % 60 === 0) {
-            console.log('Skeleton drawn successfully');
-          }
-        } else {
-          if (drawCount % 60 === 0) {
-            console.log('No results to draw - lastResults:', lastResults);
-          }
-        }
-
-        canvasCtx.restore();
-      }
-
-      // Store results from MediaPipe (called after processing each frame)
       function onResults(results) {
-        console.log('onResults called! poseLandmarks:', results.poseLandmarks ? `YES (${results.poseLandmarks.length} points)` : 'NO');
-        lastResults = results;
+          const canvasCtx = resultsCanvas.getContext('2d');
+          resultsCanvas.width = resultsVideo.videoWidth;
+          resultsCanvas.height = resultsVideo.videoHeight;
+          canvasCtx.clearRect(0, 0, resultsCanvas.width, resultsCanvas.height);
+
+          if (results.poseLandmarks) {
+              window.drawConnectors(canvasCtx, results.poseLandmarks, window.POSE_CONNECTIONS, { color: '#00FF00', lineWidth: 4 });
+              window.drawLandmarks(canvasCtx, results.poseLandmarks, { color: '#FF0000', radius: 2 });
+          }
       }
     });
   </script>
