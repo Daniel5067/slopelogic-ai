@@ -1,28 +1,112 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Slope Logic (Working)</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Slope Logic - AI Ski Coach</title>
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      text-align: center;
-      padding: 2em;
-      background-color: #f4f7f6;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
       color: #333;
     }
-    .hidden {
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 50px;
+      color: white;
+    }
+
+    .logo {
+      font-size: 48px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .tagline {
+      font-size: 20px;
+      opacity: 0.95;
+      font-weight: 300;
+    }
+
+    /* Upload Section */
+    .upload-section {
+      background: white;
+      border-radius: 20px;
+      padding: 60px 40px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      margin-bottom: 30px;
+      text-align: center;
+    }
+
+    .upload-title {
+      font-size: 28px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 15px;
+    }
+
+    .upload-subtitle {
+      font-size: 16px;
+      color: #666;
+      margin-bottom: 40px;
+    }
+
+    .upload-btn {
+      display: inline-block;
+      padding: 18px 48px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 50px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .upload-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    }
+
+    input[type="file"] {
       display: none;
     }
+
+    /* Video Player */
+    .hidden {
+      display: none !important;
+    }
+
     #playerContainer {
       position: relative;
       width: 100%;
-      max-width: 720px;
+      max-width: 900px;
       aspect-ratio: 16 / 9;
-      margin: 20px auto;
+      margin: 0 auto 30px auto;
       background-color: #000;
-      border-radius: 8px;
+      border-radius: 20px;
       overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
     }
+
     #resultsVideo, #resultsCanvas {
       position: absolute;
       top: 0;
@@ -30,46 +114,78 @@
       width: 100%;
       height: 100%;
     }
+
     #resultsVideo { z-index: 1; }
     #resultsCanvas {
       z-index: 2;
-      pointer-events: none; /* Allow clicks to pass through to video controls */
+      pointer-events: none;
+    }
+
+    /* Feedback Panel */
+    #feedbackPanel {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      body {
+        padding: 20px 10px;
+      }
+      .logo {
+        font-size: 36px;
+      }
+      .tagline {
+        font-size: 16px;
+      }
+      .upload-section {
+        padding: 40px 20px;
+      }
+      .upload-title {
+        font-size: 24px;
+      }
+      .upload-btn {
+        padding: 15px 36px;
+        font-size: 16px;
+      }
+      #feedbackPanel {
+        padding: 30px 20px;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>AI Ski Coach</h1>
-  <p>Upload your ski video. The AI analysis will appear when you press play.</p>
-
-  <button id="calibrationToggle" style="background: #FF9800; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin-bottom: 15px; font-weight: bold;">
-    📊 Calibration Mode: OFF
-  </button>
-
-  <input type="file" id="videoUpload" accept="video/*">
-
-  <div id="playerContainer" class="hidden">
-    <video id="resultsVideo" controls></video>
-    <canvas id="resultsCanvas"></canvas>
-  </div>
-
-  <div id="feedbackPanel" style="width: 100%; max-width: 720px; margin: 20px auto 0 auto; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; padding: 25px; border-radius: 15px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); font-family: 'Segoe UI', Arial, sans-serif; display: none;">
-    <h2 style="margin: 0 0 20px 0; font-size: 22px; border-bottom: 2px solid rgba(255,255,255,0.3); padding-bottom: 10px;">
-      🎿 AI Coach Analysis
-    </h2>
-    <div id="overallScore" style="font-size: 28px; font-weight: bold; margin-bottom: 20px; text-align: center; background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px;">
-      Overall: <span id="scoreValue" style="color: #4CAF50;">--</span>
+  <div class="container">
+    <div class="header">
+      <div class="logo">🎿 Slope Logic</div>
+      <div class="tagline">AI-Powered Ski Form Analysis</div>
     </div>
-    <div id="feedbackList" style="line-height: 1.8;">
-      <!-- Feedback items will appear here -->
+
+    <div class="upload-section">
+      <h2 class="upload-title">Analyze Your Ski Technique</h2>
+      <p class="upload-subtitle">Upload a video of your skiing and get professional-level feedback on your form</p>
+      <label for="videoUpload" class="upload-btn">
+        📹 Choose Video File
+      </label>
+      <input type="file" id="videoUpload" accept="video/*">
     </div>
+
+    <div id="playerContainer" class="hidden">
+      <video id="resultsVideo" controls playsinline></video>
+      <canvas id="resultsCanvas"></canvas>
+    </div>
+
+    <div id="feedbackPanel" style="display: none;"></div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1620248257/drawing_utils.js" crossorigin="anonymous"></script>
 
   <script>
-    console.log('🟢 Script loaded successfully');
-
     // ============================================
     // IDEAL SKI FORM REFERENCE MODEL
     // ============================================
@@ -110,7 +226,6 @@
     // BIOMECHANICAL ANALYSIS FUNCTIONS
     // ============================================
 
-    // Calculate angle between three points (in degrees)
     function calculateAngle(pointA, pointB, pointC) {
       const radians = Math.atan2(pointC.y - pointB.y, pointC.x - pointB.x) -
                       Math.atan2(pointA.y - pointB.y, pointA.x - pointB.x);
@@ -121,16 +236,13 @@
       return angle;
     }
 
-    // Calculate distance between two points
     function calculateDistance(pointA, pointB) {
       const dx = pointB.x - pointA.x;
       const dy = pointB.y - pointA.y;
       return Math.sqrt(dx * dx + dy * dy);
     }
 
-    // Analyze ski form and compare to ideal
     function analyzeSkiForm(landmarks) {
-      // MediaPipe Pose landmark indices
       const LEFT_SHOULDER = 11;
       const RIGHT_SHOULDER = 12;
       const LEFT_HIP = 23;
@@ -142,10 +254,9 @@
 
       const feedback = [];
 
-      // Helper function to calculate score based on how close value is to ideal range
       function calculateScore(value, min, max) {
         if (value >= min && value <= max) {
-          return 100; // Perfect - within ideal range
+          return 100;
         }
         const midpoint = (min + max) / 2;
         const tolerance = (max - min) / 2;
@@ -154,7 +265,7 @@
         return Math.round(score);
       }
 
-      // 1. Calculate knee angles
+      // 1. Knee angles
       const leftKneeAngle = calculateAngle(
         landmarks[LEFT_HIP],
         landmarks[LEFT_KNEE],
@@ -172,16 +283,16 @@
       if (avgKneeAngle < IDEAL_SKI_FORM.kneeAngle.min) {
         feedback.push({
           category: "Knee Angle",
-          emoji: avgKneeAngle < 110 ? "🔴" : "🟡",
-          status: avgKneeAngle < 110 ? "error" : "warning",
+          emoji: avgKneeAngle < 140 ? "🔴" : "🟡",
+          status: avgKneeAngle < 140 ? "error" : "warning",
           message: `Too much knee bend (${avgKneeAngle.toFixed(0)}°). Stand up slightly.`,
           score: kneeScore
         });
       } else if (avgKneeAngle > IDEAL_SKI_FORM.kneeAngle.max) {
         feedback.push({
           category: "Knee Angle",
-          emoji: avgKneeAngle > 155 ? "🔴" : "🟡",
-          status: avgKneeAngle > 155 ? "error" : "warning",
+          emoji: avgKneeAngle > 170 ? "🔴" : "🟡",
+          status: avgKneeAngle > 170 ? "error" : "warning",
           message: `Legs too straight (${avgKneeAngle.toFixed(0)}°). Bend knees more.`,
           score: kneeScore
         });
@@ -195,7 +306,7 @@
         });
       }
 
-      // 2. Calculate hip position (horizontal offset from shoulders)
+      // 2. Hip position
       const leftShoulder = landmarks[LEFT_SHOULDER];
       const rightShoulder = landmarks[RIGHT_SHOULDER];
       const leftHip = landmarks[LEFT_HIP];
@@ -203,23 +314,23 @@
 
       const shoulderMidX = (leftShoulder.x + rightShoulder.x) / 2;
       const hipMidX = (leftHip.x + rightHip.x) / 2;
-      const hipOffset = (hipMidX - shoulderMidX) * 100; // Convert to percentage
+      const hipOffset = (hipMidX - shoulderMidX) * 100;
 
-      const hipScore = calculateScore(hipOffset, -5, 10);
+      const hipScore = calculateScore(hipOffset, IDEAL_SKI_FORM.hipPosition.minForward, IDEAL_SKI_FORM.hipPosition.maxForward);
 
-      if (hipOffset < -5) {
+      if (hipOffset < IDEAL_SKI_FORM.hipPosition.minForward) {
         feedback.push({
           category: "Hip Position",
-          emoji: hipOffset < -15 ? "🔴" : "🟡",
-          status: hipOffset < -15 ? "error" : "warning",
+          emoji: hipOffset < -10 ? "🔴" : "🟡",
+          status: hipOffset < -10 ? "error" : "warning",
           message: "Hips too far back. Move weight forward.",
           score: hipScore
         });
-      } else if (hipOffset > 10) {
+      } else if (hipOffset > IDEAL_SKI_FORM.hipPosition.maxForward) {
         feedback.push({
           category: "Hip Position",
-          emoji: hipOffset > 20 ? "🔴" : "🟡",
-          status: hipOffset > 20 ? "error" : "warning",
+          emoji: hipOffset > 10 ? "🔴" : "🟡",
+          status: hipOffset > 10 ? "error" : "warning",
           message: "Hips too far forward. Shift weight back slightly.",
           score: hipScore
         });
@@ -233,9 +344,11 @@
         });
       }
 
-      // 3. Calculate stance width (as percentage of shoulder width)
+      // 3. Stance width
       const shoulderWidth = calculateDistance(leftShoulder, rightShoulder);
-      const ankleWidth = calculateDistance(landmarks[LEFT_ANKLE], landmarks[RIGHT_ANKLE]);
+      const leftAnkle = landmarks[LEFT_ANKLE];
+      const rightAnkle = landmarks[RIGHT_ANKLE];
+      const ankleWidth = calculateDistance(leftAnkle, rightAnkle);
       const stanceWidthPercent = (ankleWidth / shoulderWidth) * 100;
 
       const stanceScore = calculateScore(stanceWidthPercent, IDEAL_SKI_FORM.stanceWidth.minPercent, IDEAL_SKI_FORM.stanceWidth.maxPercent);
@@ -243,16 +356,16 @@
       if (stanceWidthPercent < IDEAL_SKI_FORM.stanceWidth.minPercent) {
         feedback.push({
           category: "Stance Width",
-          emoji: stanceWidthPercent < 80 ? "🔴" : "🟡",
-          status: stanceWidthPercent < 80 ? "error" : "warning",
+          emoji: stanceWidthPercent < 60 ? "🔴" : "🟡",
+          status: stanceWidthPercent < 60 ? "error" : "warning",
           message: "Stance too narrow. Widen your feet to shoulder width.",
           score: stanceScore
         });
       } else if (stanceWidthPercent > IDEAL_SKI_FORM.stanceWidth.maxPercent) {
         feedback.push({
           category: "Stance Width",
-          emoji: stanceWidthPercent > 130 ? "🔴" : "🟡",
-          status: stanceWidthPercent > 130 ? "error" : "warning",
+          emoji: stanceWidthPercent > 100 ? "🔴" : "🟡",
+          status: stanceWidthPercent > 100 ? "error" : "warning",
           message: "Stance too wide. Bring feet closer together.",
           score: stanceScore
         });
@@ -266,7 +379,7 @@
         });
       }
 
-      // 4. Calculate torso angle (lean from vertical)
+      // 4. Torso angle
       const shoulderMidY = (leftShoulder.y + rightShoulder.y) / 2;
       const hipMidY = (leftHip.y + rightHip.y) / 2;
       const torsoAngle = Math.atan2(Math.abs(hipMidX - shoulderMidX), Math.abs(hipMidY - shoulderMidY)) * 180 / Math.PI;
@@ -276,16 +389,16 @@
       if (torsoAngle < IDEAL_SKI_FORM.torsoAngle.min) {
         feedback.push({
           category: "Torso Angle",
-          emoji: torsoAngle < 2 ? "🔴" : "🟡",
-          status: torsoAngle < 2 ? "error" : "warning",
+          emoji: torsoAngle < 5 ? "🔴" : "🟡",
+          status: torsoAngle < 5 ? "error" : "warning",
           message: "Too upright. Lean forward slightly for better control.",
           score: torsoScore
         });
       } else if (torsoAngle > IDEAL_SKI_FORM.torsoAngle.max) {
         feedback.push({
           category: "Torso Angle",
-          emoji: torsoAngle > 30 ? "🔴" : "🟡",
-          status: torsoAngle > 30 ? "error" : "warning",
+          emoji: torsoAngle > 25 ? "🔴" : "🟡",
+          status: torsoAngle > 25 ? "error" : "warning",
           message: "Leaning too far forward. Stand up slightly.",
           score: torsoScore
         });
@@ -299,21 +412,15 @@
         });
       }
 
-      // 5. Calculate weight distribution (left/right balance)
-      const leftAnkle = landmarks[LEFT_ANKLE];
-      const rightAnkle = landmarks[RIGHT_ANKLE];
-
-      // Fixed weight distribution calculation
-      // 50% = centered, < 50% = shifted left, > 50% = shifted right
+      // 5. Weight distribution
       const ankleRangeX = Math.abs(rightAnkle.x - leftAnkle.x);
       let weightBalance;
-      if (ankleRangeX > 0.001) { // Avoid division by zero
+      if (ankleRangeX > 0.001) {
         const hipShiftFromLeft = hipMidX - leftAnkle.x;
         weightBalance = (hipShiftFromLeft / ankleRangeX) * 100;
-        // Clamp to 0-100 range
         weightBalance = Math.max(0, Math.min(100, weightBalance));
       } else {
-        weightBalance = 50; // Default to centered if ankles too close
+        weightBalance = 50;
       }
 
       const weightScore = calculateScore(weightBalance, IDEAL_SKI_FORM.weightDistribution.min, IDEAL_SKI_FORM.weightDistribution.max);
@@ -348,250 +455,14 @@
     }
 
     // ============================================
-    // CALIBRATION MODE FUNCTIONS
-    // ============================================
-
-    // Extract raw measurements from landmarks for calibration
-    function extractRawMeasurements(landmarks) {
-      const LEFT_SHOULDER = 11;
-      const RIGHT_SHOULDER = 12;
-      const LEFT_HIP = 23;
-      const RIGHT_HIP = 24;
-      const LEFT_KNEE = 25;
-      const RIGHT_KNEE = 26;
-      const LEFT_ANKLE = 27;
-      const RIGHT_ANKLE = 28;
-
-      // Calculate all raw values
-      const leftKneeAngle = calculateAngle(landmarks[LEFT_HIP], landmarks[LEFT_KNEE], landmarks[LEFT_ANKLE]);
-      const rightKneeAngle = calculateAngle(landmarks[RIGHT_HIP], landmarks[RIGHT_KNEE], landmarks[RIGHT_ANKLE]);
-      const avgKneeAngle = (leftKneeAngle + rightKneeAngle) / 2;
-
-      const leftShoulder = landmarks[LEFT_SHOULDER];
-      const rightShoulder = landmarks[RIGHT_SHOULDER];
-      const leftHip = landmarks[LEFT_HIP];
-      const rightHip = landmarks[RIGHT_HIP];
-      const shoulderMidX = (leftShoulder.x + rightShoulder.x) / 2;
-      const hipMidX = (leftHip.x + rightHip.x) / 2;
-      const hipOffset = (hipMidX - shoulderMidX) * 100;
-
-      const shoulderWidth = calculateDistance(leftShoulder, rightShoulder);
-      const leftAnkle = landmarks[LEFT_ANKLE];
-      const rightAnkle = landmarks[RIGHT_ANKLE];
-      const ankleWidth = calculateDistance(leftAnkle, rightAnkle);
-      const stanceWidthPercent = (ankleWidth / shoulderWidth) * 100;
-
-      const shoulderMidY = (leftShoulder.y + rightShoulder.y) / 2;
-      const hipMidY = (leftHip.y + rightHip.y) / 2;
-      const torsoAngle = Math.atan2(Math.abs(hipMidX - shoulderMidX), Math.abs(hipMidY - shoulderMidY)) * 180 / Math.PI;
-
-      // Fixed weight distribution calculation
-      // Calculate how far hips are shifted from center of ankle base
-      // 50% = centered, < 50% = shifted left, > 50% = shifted right
-      const ankleMidX = (leftAnkle.x + rightAnkle.x) / 2;
-      const ankleRangeX = Math.abs(rightAnkle.x - leftAnkle.x);
-
-      // Calculate hip shift as percentage from left ankle (0%) to right ankle (100%)
-      let weightBalance;
-      if (ankleRangeX > 0.001) { // Avoid division by zero
-        const hipShiftFromLeft = hipMidX - leftAnkle.x;
-        weightBalance = (hipShiftFromLeft / ankleRangeX) * 100;
-        // Clamp to 0-100 range
-        weightBalance = Math.max(0, Math.min(100, weightBalance));
-      } else {
-        weightBalance = 50; // Default to centered if ankles too close
-      }
-
-      // Validation
-      const measurements = {
-        kneeAngle: avgKneeAngle,
-        hipPosition: hipOffset,
-        stanceWidth: stanceWidthPercent,
-        torsoAngle: torsoAngle,
-        weightDistribution: weightBalance
-      };
-
-      // Check if measurements are valid
-      const isValid =
-        avgKneeAngle >= 90 && avgKneeAngle <= 180 &&
-        hipOffset >= -20 && hipOffset <= 20 &&
-        stanceWidthPercent >= 50 && stanceWidthPercent <= 200 &&
-        torsoAngle >= 0 && torsoAngle <= 45 &&
-        weightBalance >= 0 && weightBalance <= 100;
-
-      if (!isValid) {
-        console.warn('⚠️ Invalid measurement detected:', {
-          kneeAngle: avgKneeAngle.toFixed(1) + '° ' + (avgKneeAngle < 90 || avgKneeAngle > 180 ? '❌' : '✅'),
-          hipPosition: hipOffset.toFixed(1) + ' ' + (hipOffset < -20 || hipOffset > 20 ? '❌' : '✅'),
-          stanceWidth: stanceWidthPercent.toFixed(1) + '% ' + (stanceWidthPercent < 50 || stanceWidthPercent > 200 ? '❌' : '✅'),
-          torsoAngle: torsoAngle.toFixed(1) + '° ' + (torsoAngle < 0 || torsoAngle > 45 ? '❌' : '✅'),
-          weightBalance: weightBalance.toFixed(1) + '% ' + (weightBalance < 0 || weightBalance > 100 ? '❌' : '✅')
-        });
-      }
-
-      measurements.isValid = isValid;
-      return measurements;
-    }
-
-    // Display calibration results
-    function displayCalibrationResults(rawMeasurements) {
-      const feedbackPanel = document.getElementById('feedbackPanel');
-
-      // Filter to only valid measurements
-      const validMeasurements = rawMeasurements.filter(m => m.isValid);
-      const totalCount = rawMeasurements.length;
-      const validCount = validMeasurements.length;
-      const invalidCount = totalCount - validCount;
-
-      console.log(`📊 Validation results: ${validCount} valid / ${totalCount} total (${invalidCount} rejected)`);
-
-      if (validCount === 0) {
-        feedbackPanel.innerHTML = `
-          <div style="text-align: center; padding: 40px;">
-            <h2 style="color: #F44336; margin-bottom: 20px;">❌ No Valid Measurements</h2>
-            <p>All ${totalCount} measurements were outside acceptable ranges.</p>
-            <p style="margin-top: 20px;">This usually means:</p>
-            <ul style="text-align: left; max-width: 400px; margin: 20px auto;">
-              <li>Video angle is not suitable (use side view)</li>
-              <li>Skier is too far from camera</li>
-              <li>Pose detection quality is poor</li>
-            </ul>
-            <button onclick="location.reload()" style="width: 100%; padding: 15px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 20px;">
-              🔄 Try Another Video
-            </button>
-          </div>
-        `;
-        feedbackPanel.style.display = 'block';
-        return;
-      }
-
-      // Calculate statistics for each metric (using only valid measurements)
-      const stats = {};
-      const metrics = ['kneeAngle', 'hipPosition', 'stanceWidth', 'torsoAngle', 'weightDistribution'];
-
-      metrics.forEach(metric => {
-        const values = validMeasurements.map(m => m[metric]);
-        const avg = values.reduce((a, b) => a + b, 0) / values.length;
-        const min = Math.min(...values);
-        const max = Math.max(...values);
-
-        // Calculate standard deviation
-        const squaredDiffs = values.map(v => Math.pow(v - avg, 2));
-        const variance = squaredDiffs.reduce((a, b) => a + b, 0) / values.length;
-        const stdDev = Math.sqrt(variance);
-
-        // Ideal range = avg ± 0.5 * stdDev (tighter zone around typical form)
-        const idealMin = avg - (0.5 * stdDev);
-        const idealMax = avg + (0.5 * stdDev);
-
-        stats[metric] = { avg, min, max, stdDev, idealMin, idealMax };
-      });
-
-      // Generate code snippet for IDEAL_SKI_FORM (using tighter stddev-based ranges)
-      const codeSnippet = `const IDEAL_SKI_FORM = {
-  kneeAngle: {
-    min: ${Math.round(stats.kneeAngle.idealMin)},
-    max: ${Math.round(stats.kneeAngle.idealMax)},
-    unit: "degrees",
-    description: "Athletic stance with proper knee flex"
-  },
-  hipPosition: {
-    minForward: ${stats.hipPosition.idealMin.toFixed(1)},
-    maxForward: ${stats.hipPosition.idealMax.toFixed(1)},
-    unit: "cm",
-    description: "Hips slightly forward of shoulders for balance"
-  },
-  stanceWidth: {
-    minPercent: ${Math.round(stats.stanceWidth.idealMin)},
-    maxPercent: ${Math.round(stats.stanceWidth.idealMax)},
-    unit: "percent",
-    description: "Approximately shoulder-width stance"
-  },
-  torsoAngle: {
-    min: ${Math.round(stats.torsoAngle.idealMin)},
-    max: ${Math.round(stats.torsoAngle.idealMax)},
-    unit: "degrees",
-    description: "Slight forward lean in upper body"
-  },
-  weightDistribution: {
-    min: ${Math.round(stats.weightDistribution.idealMin)},
-    max: ${Math.round(stats.weightDistribution.idealMax)},
-    unit: "percent",
-    description: "Centered weight between both feet"
-  }
-};`;
-
-      feedbackPanel.innerHTML = `
-        <div style="text-align: center; border-bottom: 2px solid rgba(255,255,255,0.3); padding-bottom: 15px; margin-bottom: 20px;">
-          <h2 style="margin: 0 0 10px 0; font-size: 24px;">📊 PROFESSIONAL REFERENCE DATA CAPTURED</h2>
-          <p style="opacity: 0.8; font-size: 14px; margin: 5px 0;">
-            <span style="color: #4CAF50; font-weight: bold;">${validCount} valid</span> / ${totalCount} total measurements
-            ${invalidCount > 0 ? `<span style="color: #FFC107;"> (${invalidCount} rejected)</span>` : ''}
-          </p>
-        </div>
-
-        <div style="margin-bottom: 20px; font-size: 14px; line-height: 1.8;">
-          <div style="margin-bottom: 15px; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 8px;">
-            <strong>Knee Angle:</strong><br>
-            Average: ${stats.kneeAngle.avg.toFixed(1)}°<br>
-            Observed Range: ${stats.kneeAngle.min.toFixed(1)}° - ${stats.kneeAngle.max.toFixed(1)}°<br>
-            <span style="color: #4CAF50;">✅ Recommended Ideal: ${Math.round(stats.kneeAngle.idealMin)}° - ${Math.round(stats.kneeAngle.idealMax)}°</span>
-          </div>
-
-          <div style="margin-bottom: 15px; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 8px;">
-            <strong>Hip Position:</strong><br>
-            Average: ${stats.hipPosition.avg.toFixed(1)} units<br>
-            Observed Range: ${stats.hipPosition.min.toFixed(1)} - ${stats.hipPosition.max.toFixed(1)}<br>
-            <span style="color: #4CAF50;">✅ Recommended Ideal: ${stats.hipPosition.idealMin.toFixed(1)} - ${stats.hipPosition.idealMax.toFixed(1)}</span>
-          </div>
-
-          <div style="margin-bottom: 15px; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 8px;">
-            <strong>Stance Width:</strong><br>
-            Average: ${stats.stanceWidth.avg.toFixed(1)}%<br>
-            Observed Range: ${stats.stanceWidth.min.toFixed(1)}% - ${stats.stanceWidth.max.toFixed(1)}%<br>
-            <span style="color: #4CAF50;">✅ Recommended Ideal: ${Math.round(stats.stanceWidth.idealMin)}% - ${Math.round(stats.stanceWidth.idealMax)}%</span>
-          </div>
-
-          <div style="margin-bottom: 15px; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 8px;">
-            <strong>Torso Angle:</strong><br>
-            Average: ${stats.torsoAngle.avg.toFixed(1)}°<br>
-            Observed Range: ${stats.torsoAngle.min.toFixed(1)}° - ${stats.torsoAngle.max.toFixed(1)}°<br>
-            <span style="color: #4CAF50;">✅ Recommended Ideal: ${Math.round(stats.torsoAngle.idealMin)}° - ${Math.round(stats.torsoAngle.idealMax)}°</span>
-          </div>
-
-          <div style="margin-bottom: 15px; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 8px;">
-            <strong>Weight Distribution:</strong><br>
-            Average: ${stats.weightDistribution.avg.toFixed(1)}%<br>
-            Observed Range: ${stats.weightDistribution.min.toFixed(1)}% - ${stats.weightDistribution.max.toFixed(1)}%<br>
-            <span style="color: #4CAF50;">✅ Recommended Ideal: ${Math.round(stats.weightDistribution.idealMin)}% - ${Math.round(stats.weightDistribution.idealMax)}%</span>
-          </div>
-        </div>
-
-        <div style="margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 8px; border-left: 4px solid #2196F3;">
-          <strong style="color: #2196F3; display: block; margin-bottom: 10px;">📋 COPY THIS TO UPDATE IDEAL_SKI_FORM:</strong>
-          <pre style="background: rgba(0,0,0,0.5); padding: 15px; border-radius: 5px; overflow-x: auto; font-size: 12px; line-height: 1.5; margin: 0; white-space: pre-wrap; word-wrap: break-word;">${codeSnippet}</pre>
-        </div>
-
-        <button onclick="location.reload()" style="width: 100%; padding: 15px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 15px;">
-          🔄 Calibrate Another Video
-        </button>
-      `;
-
-      feedbackPanel.style.display = 'block';
-    }
-
-    // ============================================
     // SUMMARY REPORT FUNCTIONS
     // ============================================
 
-    // Calculate average scores for each metric from history
     function calculateSummary(feedbackHistory) {
       if (feedbackHistory.length === 0) return null;
 
-      // Initialize accumulators for each metric
       const metricData = {};
 
-      // Collect all scores for each metric
       feedbackHistory.forEach(feedbackArray => {
         feedbackArray.forEach(item => {
           if (!metricData[item.category]) {
@@ -606,12 +477,10 @@
         });
       });
 
-      // Calculate averages and get most common message
       const summary = Object.keys(metricData).map(category => {
         const data = metricData[category];
         const avgScore = Math.round(data.scores.reduce((a, b) => a + b, 0) / data.scores.length);
 
-        // Get most common message
         const messageCounts = {};
         data.messages.forEach(msg => {
           messageCounts[msg] = (messageCounts[msg] || 0) + 1;
@@ -620,7 +489,6 @@
           messageCounts[a] > messageCounts[b] ? a : b
         );
 
-        // Determine emoji based on average score
         let emoji, status;
         if (avgScore >= 80) {
           emoji = '🟢';
@@ -645,40 +513,32 @@
       return summary;
     }
 
-    // Display summary report at end of video
     function displaySummaryReport(summary) {
       const feedbackPanel = document.getElementById('feedbackPanel');
 
-      // Sort metrics by score
       const sortedByScore = [...summary].sort((a, b) => a.score - b.score);
-
-      // Get top 3 areas to improve (lowest scores)
       const areasToImprove = sortedByScore.slice(0, 3);
-
-      // Get what you did well (highest scores) - take top 2-3
       const strengths = sortedByScore.slice(-3).reverse().filter(item => item.score >= 70);
-
-      // Calculate overall score
       const overallScore = Math.round(summary.reduce((sum, item) => sum + item.score, 0) / summary.length);
 
-      // Generate summary HTML
       feedbackPanel.innerHTML = `
-        <div style="text-align: center; border-bottom: 2px solid rgba(255,255,255,0.3); padding-bottom: 15px; margin-bottom: 20px;">
-          <h2 style="margin: 0 0 10px 0; font-size: 24px;">📊 PERFORMANCE SUMMARY</h2>
+        <div style="text-align: center; border-bottom: 3px solid #667eea; padding-bottom: 20px; margin-bottom: 30px;">
+          <h2 style="margin: 0 0 10px 0; font-size: 32px; color: #333; font-weight: 700;">📊 Performance Summary</h2>
+          <p style="color: #666; font-size: 14px;">Based on ${summary.length} metrics analyzed throughout your run</p>
         </div>
 
-        <div style="font-size: 32px; font-weight: bold; text-align: center; margin-bottom: 25px; background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px;">
-          Overall Score: <span style="color: ${overallScore >= 80 ? '#4CAF50' : overallScore >= 60 ? '#FFC107' : '#F44336'}">${overallScore}/100</span>
+        <div style="font-size: 36px; font-weight: 700; text-align: center; margin-bottom: 40px; padding: 25px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 15px; color: white;">
+          Overall Score: ${overallScore}/100
         </div>
 
-        <div style="margin-bottom: 25px;">
-          <h3 style="font-size: 18px; margin: 0 0 15px 0; color: #FFC107;">🎯 TOP 3 AREAS TO IMPROVE:</h3>
+        <div style="margin-bottom: 35px;">
+          <h3 style="font-size: 20px; margin: 0 0 20px 0; color: #f44336; font-weight: 600;">🎯 Top Areas to Improve</h3>
           ${areasToImprove.map(item => `
-            <div style="margin-bottom: 15px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 8px; border-left: 4px solid #F44336;">
-              <div style="font-weight: bold; margin-bottom: 8px; font-size: 15px;">
-                ${item.emoji} ${item.category} <span style="float: right; color: #F44336;">${item.score}/100</span>
+            <div style="margin-bottom: 15px; padding: 20px; background: #fff5f5; border-radius: 12px; border-left: 5px solid #f44336;">
+              <div style="font-weight: 600; margin-bottom: 10px; font-size: 16px; color: #333;">
+                ${item.emoji} ${item.category} <span style="float: right; color: #f44336; font-size: 18px;">${item.score}/100</span>
               </div>
-              <div style="font-size: 14px; opacity: 0.9; padding-left: 10px;">
+              <div style="font-size: 15px; color: #666; padding-left: 15px;">
                 → ${item.message}
               </div>
             </div>
@@ -686,18 +546,18 @@
         </div>
 
         ${strengths.length > 0 ? `
-          <div style="margin-bottom: 25px;">
-            <h3 style="font-size: 18px; margin: 0 0 15px 0; color: #4CAF50;">✅ WHAT YOU DID WELL:</h3>
+          <div style="margin-bottom: 35px;">
+            <h3 style="font-size: 20px; margin: 0 0 20px 0; color: #4caf50; font-weight: 600;">✅ What You Did Well</h3>
             ${strengths.map(item => `
-              <div style="margin-bottom: 10px; padding: 12px; background: rgba(76, 175, 80, 0.15); border-radius: 8px; border-left: 4px solid #4CAF50;">
-                <span style="font-weight: bold;">${item.emoji} ${item.category}</span>
-                <span style="float: right; color: #4CAF50; font-weight: bold;">${item.score}/100</span>
+              <div style="margin-bottom: 12px; padding: 18px; background: #f1f8f4; border-radius: 12px; border-left: 5px solid #4caf50; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-weight: 600; color: #333; font-size: 16px;">${item.emoji} ${item.category}</span>
+                <span style="color: #4caf50; font-weight: 700; font-size: 18px;">${item.score}/100</span>
               </div>
             `).join('')}
           </div>
         ` : ''}
 
-        <button onclick="location.reload()" style="width: 100%; padding: 15px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px;">
+        <button onclick="location.reload()" style="width: 100%; padding: 18px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 50px; font-size: 18px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
           🔄 Analyze Another Video
         </button>
       `;
@@ -706,211 +566,76 @@
     }
 
     // ============================================
-    // DISPLAY FEEDBACK FUNCTION
+    // MAIN APPLICATION LOGIC
     // ============================================
-    function displayFeedback(feedback) {
-      const feedbackList = document.getElementById('feedbackList');
-      const scoreValue = document.getElementById('scoreValue');
-
-      // Calculate overall score from all feedback items
-      const scores = feedback.map(f => f.score);
-      const overall = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
-
-      // Update the overall score display with appropriate color
-      scoreValue.textContent = overall + '/100';
-      if (overall >= 80) {
-        scoreValue.style.color = '#4CAF50'; // Green for great
-      } else if (overall >= 60) {
-        scoreValue.style.color = '#FFC107'; // Yellow for okay
-      } else {
-        scoreValue.style.color = '#F44336'; // Red for needs work
-      }
-
-      // Generate HTML for each feedback item
-      feedbackList.innerHTML = feedback.map(item => {
-        // Choose border color based on status
-        const borderColor = item.status === 'good' ? '#4CAF50' :
-                           item.status === 'warning' ? '#FFC107' : '#F44336';
-
-        return `
-          <div style="margin-bottom: 15px; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 8px; border-left: 4px solid ${borderColor};">
-            <div style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">
-              ${item.emoji} ${item.category}
-            </div>
-            <div style="font-size: 13px; opacity: 0.9;">
-              ${item.message}
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
 
     document.addEventListener('DOMContentLoaded', () => {
-      console.log('🟢 DOMContentLoaded - page ready');
-
       const videoUpload = document.getElementById('videoUpload');
       const playerContainer = document.getElementById('playerContainer');
       const resultsVideo = document.getElementById('resultsVideo');
       const resultsCanvas = document.getElementById('resultsCanvas');
       const feedbackPanel = document.getElementById('feedbackPanel');
-      const calibrationToggle = document.getElementById('calibrationToggle');
 
-      // Data collection for summary report
-      let feedbackHistory = []; // Stores all feedback arrays throughout video
-      let rawMeasurements = []; // Stores raw measurements for calibration mode
-      let isCalibrationMode = false; // Toggle between calibration and normal mode
+      let feedbackHistory = [];
 
-      // Toggle calibration mode
-      calibrationToggle.addEventListener('click', () => {
-        isCalibrationMode = !isCalibrationMode;
-        if (isCalibrationMode) {
-          calibrationToggle.style.background = '#4CAF50';
-          calibrationToggle.textContent = '✅ Calibration Mode: ON';
-          console.log('🎯 Calibration mode ENABLED - Will collect raw measurements');
-        } else {
-          calibrationToggle.style.background = '#FF9800';
-          calibrationToggle.textContent = '📊 Calibration Mode: OFF';
-          console.log('🎯 Calibration mode DISABLED - Will use normal comparison');
+      const pose = new Pose({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`
+      });
+
+      pose.setOptions({
+        modelComplexity: 1,
+        smoothLandmarks: true,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5
+      });
+
+      pose.onResults(onResults);
+
+      videoUpload.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (file) {
+          feedbackHistory = [];
+          feedbackPanel.style.display = 'none';
+          playerContainer.classList.remove('hidden');
+          resultsVideo.src = URL.createObjectURL(file);
+          resultsVideo.load();
         }
       });
 
-      console.log('Elements found:', {
-        videoUpload: !!videoUpload,
-        playerContainer: !!playerContainer,
-        resultsVideo: !!resultsVideo,
-        resultsCanvas: !!resultsCanvas
-      });
-
-      console.log('🟡 Initializing MediaPipe Pose...');
-      const pose = new Pose({
-          locateFile: (file) => {
-            const path = `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`;
-            console.log('MediaPipe loading:', file);
-            return path;
-          }
-      });
-      pose.setOptions({
-          modelComplexity: 1,
-          smoothLandmarks: true,
-          minDetectionConfidence: 0.5,
-          minTrackingConfidence: 0.5
-      });
-      pose.onResults(onResults);
-      console.log('✅ MediaPipe Pose initialized');
-
-      videoUpload.addEventListener('change', (event) => {
-          console.log('🟢 Upload button clicked - file selected');
-          const file = event.target.files[0];
-          if (file) {
-              console.log('📹 File details:', {
-                name: file.name,
-                type: file.type,
-                size: (file.size / 1024 / 1024).toFixed(2) + ' MB'
-              });
-              // Reset data collection for new video
-              feedbackHistory = [];
-              rawMeasurements = [];
-              feedbackPanel.style.display = 'none';
-              playerContainer.classList.remove('hidden');
-              resultsVideo.src = URL.createObjectURL(file);
-              resultsVideo.load();
-              console.log('✅ Video source set, loading...');
-          } else {
-              console.log('❌ No file selected');
-          }
-      });
-
-      resultsVideo.addEventListener('loadeddata', () => {
-          console.log('🟢 Video loaded successfully', {
-            width: resultsVideo.videoWidth,
-            height: resultsVideo.videoHeight,
-            duration: resultsVideo.duration.toFixed(2) + 's'
-          });
-      });
-
       resultsVideo.addEventListener('play', () => {
-          console.log('🟢 Play button clicked - video playing');
-          let frameCount = 0;
-          const processVideo = async () => {
-              if (resultsVideo.paused || resultsVideo.ended) {
-                  console.log('⏸️ Video stopped, ending processing');
-                  return;
-              }
-              frameCount++;
-              if (frameCount % 60 === 0) {
-                console.log(`Processing frame ${frameCount} at ${resultsVideo.currentTime.toFixed(2)}s`);
-              }
-              await pose.send({ image: resultsVideo });
-              requestAnimationFrame(processVideo);
-          };
+        const processVideo = async () => {
+          if (resultsVideo.paused || resultsVideo.ended) return;
+          await pose.send({ image: resultsVideo });
           requestAnimationFrame(processVideo);
-      });
-
-      resultsVideo.addEventListener('pause', () => {
-          console.log('⏸️ Video paused');
+        };
+        requestAnimationFrame(processVideo);
       });
 
       resultsVideo.addEventListener('ended', () => {
-          console.log('🏁 Video ended - generating report');
-          if (isCalibrationMode && rawMeasurements.length > 0) {
-            // Display calibration results
-            displayCalibrationResults(rawMeasurements);
-            console.log('📊 Calibration data captured:', rawMeasurements.length, 'measurements');
-          } else if (!isCalibrationMode && feedbackHistory.length > 0) {
-            // Display normal summary report
-            const summary = calculateSummary(feedbackHistory);
-            displaySummaryReport(summary);
-            console.log('📊 Summary report displayed with', feedbackHistory.length, 'data points');
-          }
-      });
-
-      resultsVideo.addEventListener('error', (e) => {
-          console.error('❌ Video error:', e);
+        if (feedbackHistory.length > 0) {
+          const summary = calculateSummary(feedbackHistory);
+          displaySummaryReport(summary);
+        }
       });
 
       let resultsCount = 0;
       function onResults(results) {
-          resultsCount++;
-          if (resultsCount % 60 === 0) {
-            console.log(`onResults called ${resultsCount} times, landmarks detected:`, !!results.poseLandmarks);
+        resultsCount++;
+
+        const canvasCtx = resultsCanvas.getContext('2d');
+        resultsCanvas.width = resultsVideo.videoWidth;
+        resultsCanvas.height = resultsVideo.videoHeight;
+        canvasCtx.clearRect(0, 0, resultsCanvas.width, resultsCanvas.height);
+
+        if (results.poseLandmarks) {
+          window.drawConnectors(canvasCtx, results.poseLandmarks, window.POSE_CONNECTIONS, { color: '#00FF00', lineWidth: 4 });
+          window.drawLandmarks(canvasCtx, results.poseLandmarks, { color: '#FF0000', radius: 2 });
+
+          if (resultsCount % 30 === 0) {
+            const feedbackArray = analyzeSkiForm(results.poseLandmarks);
+            feedbackHistory.push(feedbackArray);
           }
-
-          const canvasCtx = resultsCanvas.getContext('2d');
-          resultsCanvas.width = resultsVideo.videoWidth;
-          resultsCanvas.height = resultsVideo.videoHeight;
-          canvasCtx.clearRect(0, 0, resultsCanvas.width, resultsCanvas.height);
-
-          if (results.poseLandmarks) {
-              // Draw skeleton
-              window.drawConnectors(canvasCtx, results.poseLandmarks, window.POSE_CONNECTIONS, { color: '#00FF00', lineWidth: 4 });
-              window.drawLandmarks(canvasCtx, results.poseLandmarks, { color: '#FF0000', radius: 2 });
-
-              // Collect data (every 30 frames = ~1 second)
-              if (resultsCount % 30 === 0) {
-                if (isCalibrationMode) {
-                  // Calibration mode: collect raw measurements
-                  const measurements = extractRawMeasurements(results.poseLandmarks);
-                  rawMeasurements.push(measurements);
-
-                  const validCount = rawMeasurements.filter(m => m.isValid).length;
-                  const totalCount = rawMeasurements.length;
-                  console.log(`📊 Calibration: ${validCount} valid / ${totalCount} total samples`);
-
-                  if (!measurements.isValid) {
-                    console.warn('⚠️ Last measurement rejected - see warning above for details');
-                  }
-                } else {
-                  // Normal mode: collect feedback for comparison
-                  const feedbackArray = analyzeSkiForm(results.poseLandmarks);
-                  feedbackHistory.push(feedbackArray);
-
-                  // Log to console for debugging
-                  const totalScore = feedbackArray.reduce((sum, item) => sum + item.score, 0);
-                  const overallScore = Math.round(totalScore / feedbackArray.length);
-                  console.log(`📊 Data collected (${feedbackHistory.length} samples) - Current score: ${overallScore}/100`);
-                }
-              }
-          }
+        }
       }
     });
   </script>
