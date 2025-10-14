@@ -40,6 +40,11 @@
 <body>
   <h1>AI Ski Coach</h1>
   <p>Upload your ski video. The AI analysis will appear when you press play.</p>
+
+  <button id="calibrationToggle" style="background: #FF9800; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin-bottom: 15px; font-weight: bold;">
+    📊 Calibration Mode: OFF
+  </button>
+
   <input type="file" id="videoUpload" accept="video/*">
 
   <div id="playerContainer" class="hidden">
@@ -336,6 +341,162 @@
     }
 
     // ============================================
+    // CALIBRATION MODE FUNCTIONS
+    // ============================================
+
+    // Extract raw measurements from landmarks for calibration
+    function extractRawMeasurements(landmarks) {
+      const LEFT_SHOULDER = 11;
+      const RIGHT_SHOULDER = 12;
+      const LEFT_HIP = 23;
+      const RIGHT_HIP = 24;
+      const LEFT_KNEE = 25;
+      const RIGHT_KNEE = 26;
+      const LEFT_ANKLE = 27;
+      const RIGHT_ANKLE = 28;
+
+      // Calculate all raw values
+      const leftKneeAngle = calculateAngle(landmarks[LEFT_HIP], landmarks[LEFT_KNEE], landmarks[LEFT_ANKLE]);
+      const rightKneeAngle = calculateAngle(landmarks[RIGHT_HIP], landmarks[RIGHT_KNEE], landmarks[RIGHT_ANKLE]);
+      const avgKneeAngle = (leftKneeAngle + rightKneeAngle) / 2;
+
+      const leftShoulder = landmarks[LEFT_SHOULDER];
+      const rightShoulder = landmarks[RIGHT_SHOULDER];
+      const leftHip = landmarks[LEFT_HIP];
+      const rightHip = landmarks[RIGHT_HIP];
+      const shoulderMidX = (leftShoulder.x + rightShoulder.x) / 2;
+      const hipMidX = (leftHip.x + rightHip.x) / 2;
+      const hipOffset = (hipMidX - shoulderMidX) * 100;
+
+      const shoulderWidth = calculateDistance(leftShoulder, rightShoulder);
+      const ankleWidth = calculateDistance(landmarks[LEFT_ANKLE], landmarks[RIGHT_ANKLE]);
+      const stanceWidthPercent = (ankleWidth / shoulderWidth) * 100;
+
+      const shoulderMidY = (leftShoulder.y + rightShoulder.y) / 2;
+      const hipMidY = (leftHip.y + rightHip.y) / 2;
+      const torsoAngle = Math.atan2(Math.abs(hipMidX - shoulderMidX), Math.abs(hipMidY - shoulderMidY)) * 180 / Math.PI;
+
+      const leftAnkle = landmarks[LEFT_ANKLE];
+      const rightAnkle = landmarks[RIGHT_ANKLE];
+      const ankleMidX = (leftAnkle.x + rightAnkle.x) / 2;
+      const weightBalance = ((hipMidX - ankleMidX) / ankleWidth + 0.5) * 100;
+
+      return {
+        kneeAngle: avgKneeAngle,
+        hipPosition: hipOffset,
+        stanceWidth: stanceWidthPercent,
+        torsoAngle: torsoAngle,
+        weightDistribution: weightBalance
+      };
+    }
+
+    // Display calibration results
+    function displayCalibrationResults(rawMeasurements) {
+      const feedbackPanel = document.getElementById('feedbackPanel');
+
+      // Calculate statistics for each metric
+      const stats = {};
+      const metrics = ['kneeAngle', 'hipPosition', 'stanceWidth', 'torsoAngle', 'weightDistribution'];
+
+      metrics.forEach(metric => {
+        const values = rawMeasurements.map(m => m[metric]);
+        const avg = values.reduce((a, b) => a + b, 0) / values.length;
+        const min = Math.min(...values);
+        const max = Math.max(...values);
+        stats[metric] = { avg, min, max };
+      });
+
+      // Generate code snippet for IDEAL_SKI_FORM
+      const codeSnippet = `const IDEAL_SKI_FORM = {
+  kneeAngle: {
+    min: ${Math.round(stats.kneeAngle.min)},
+    max: ${Math.round(stats.kneeAngle.max)},
+    unit: "degrees",
+    description: "Athletic stance with proper knee flex"
+  },
+  hipPosition: {
+    minForward: ${stats.hipPosition.min.toFixed(1)},
+    maxForward: ${stats.hipPosition.max.toFixed(1)},
+    unit: "cm",
+    description: "Hips slightly forward of shoulders for balance"
+  },
+  stanceWidth: {
+    minPercent: ${Math.round(stats.stanceWidth.min)},
+    maxPercent: ${Math.round(stats.stanceWidth.max)},
+    unit: "percent",
+    description: "Approximately shoulder-width stance"
+  },
+  torsoAngle: {
+    min: ${Math.round(stats.torsoAngle.min)},
+    max: ${Math.round(stats.torsoAngle.max)},
+    unit: "degrees",
+    description: "Slight forward lean in upper body"
+  },
+  weightDistribution: {
+    min: ${Math.round(stats.weightDistribution.min)},
+    max: ${Math.round(stats.weightDistribution.max)},
+    unit: "percent",
+    description: "Centered weight between both feet"
+  }
+};`;
+
+      feedbackPanel.innerHTML = `
+        <div style="text-align: center; border-bottom: 2px solid rgba(255,255,255,0.3); padding-bottom: 15px; margin-bottom: 20px;">
+          <h2 style="margin: 0 0 10px 0; font-size: 24px;">📊 PROFESSIONAL REFERENCE DATA CAPTURED</h2>
+          <p style="opacity: 0.8; font-size: 14px; margin: 5px 0;">${rawMeasurements.length} measurements analyzed</p>
+        </div>
+
+        <div style="margin-bottom: 20px; font-size: 14px; line-height: 1.8;">
+          <div style="margin-bottom: 15px; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 8px;">
+            <strong>Knee Angle:</strong><br>
+            Average: ${stats.kneeAngle.avg.toFixed(1)}°<br>
+            Min: ${stats.kneeAngle.min.toFixed(1)}° | Max: ${stats.kneeAngle.max.toFixed(1)}°<br>
+            <span style="color: #4CAF50;">Suggested Range: ${Math.round(stats.kneeAngle.min)}-${Math.round(stats.kneeAngle.max)}°</span>
+          </div>
+
+          <div style="margin-bottom: 15px; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 8px;">
+            <strong>Hip Position:</strong><br>
+            Average: ${stats.hipPosition.avg.toFixed(1)} units forward<br>
+            Min: ${stats.hipPosition.min.toFixed(1)} | Max: ${stats.hipPosition.max.toFixed(1)}<br>
+            <span style="color: #4CAF50;">Suggested Range: ${stats.hipPosition.min.toFixed(1)} - ${stats.hipPosition.max.toFixed(1)}</span>
+          </div>
+
+          <div style="margin-bottom: 15px; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 8px;">
+            <strong>Stance Width:</strong><br>
+            Average: ${stats.stanceWidth.avg.toFixed(1)}%<br>
+            Min: ${stats.stanceWidth.min.toFixed(1)}% | Max: ${stats.stanceWidth.max.toFixed(1)}%<br>
+            <span style="color: #4CAF50;">Suggested Range: ${Math.round(stats.stanceWidth.min)}-${Math.round(stats.stanceWidth.max)}%</span>
+          </div>
+
+          <div style="margin-bottom: 15px; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 8px;">
+            <strong>Torso Angle:</strong><br>
+            Average: ${stats.torsoAngle.avg.toFixed(1)}°<br>
+            Min: ${stats.torsoAngle.min.toFixed(1)}° | Max: ${stats.torsoAngle.max.toFixed(1)}°<br>
+            <span style="color: #4CAF50;">Suggested Range: ${Math.round(stats.torsoAngle.min)}-${Math.round(stats.torsoAngle.max)}°</span>
+          </div>
+
+          <div style="margin-bottom: 15px; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 8px;">
+            <strong>Weight Distribution:</strong><br>
+            Average: ${stats.weightDistribution.avg.toFixed(1)}%<br>
+            Min: ${stats.weightDistribution.min.toFixed(1)}% | Max: ${stats.weightDistribution.max.toFixed(1)}%<br>
+            <span style="color: #4CAF50;">Suggested Range: ${Math.round(stats.weightDistribution.min)}-${Math.round(stats.weightDistribution.max)}%</span>
+          </div>
+        </div>
+
+        <div style="margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 8px; border-left: 4px solid #2196F3;">
+          <strong style="color: #2196F3; display: block; margin-bottom: 10px;">📋 COPY THIS TO UPDATE IDEAL_SKI_FORM:</strong>
+          <pre style="background: rgba(0,0,0,0.5); padding: 15px; border-radius: 5px; overflow-x: auto; font-size: 12px; line-height: 1.5; margin: 0; white-space: pre-wrap; word-wrap: break-word;">${codeSnippet}</pre>
+        </div>
+
+        <button onclick="location.reload()" style="width: 100%; padding: 15px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 15px;">
+          🔄 Calibrate Another Video
+        </button>
+      `;
+
+      feedbackPanel.style.display = 'block';
+    }
+
+    // ============================================
     // SUMMARY REPORT FUNCTIONS
     // ============================================
 
@@ -508,9 +669,26 @@
       const resultsVideo = document.getElementById('resultsVideo');
       const resultsCanvas = document.getElementById('resultsCanvas');
       const feedbackPanel = document.getElementById('feedbackPanel');
+      const calibrationToggle = document.getElementById('calibrationToggle');
 
       // Data collection for summary report
       let feedbackHistory = []; // Stores all feedback arrays throughout video
+      let rawMeasurements = []; // Stores raw measurements for calibration mode
+      let isCalibrationMode = false; // Toggle between calibration and normal mode
+
+      // Toggle calibration mode
+      calibrationToggle.addEventListener('click', () => {
+        isCalibrationMode = !isCalibrationMode;
+        if (isCalibrationMode) {
+          calibrationToggle.style.background = '#4CAF50';
+          calibrationToggle.textContent = '✅ Calibration Mode: ON';
+          console.log('🎯 Calibration mode ENABLED - Will collect raw measurements');
+        } else {
+          calibrationToggle.style.background = '#FF9800';
+          calibrationToggle.textContent = '📊 Calibration Mode: OFF';
+          console.log('🎯 Calibration mode DISABLED - Will use normal comparison');
+        }
+      });
 
       console.log('Elements found:', {
         videoUpload: !!videoUpload,
@@ -547,6 +725,7 @@
               });
               // Reset data collection for new video
               feedbackHistory = [];
+              rawMeasurements = [];
               feedbackPanel.style.display = 'none';
               playerContainer.classList.remove('hidden');
               resultsVideo.src = URL.createObjectURL(file);
@@ -588,8 +767,13 @@
       });
 
       resultsVideo.addEventListener('ended', () => {
-          console.log('🏁 Video ended - generating summary report');
-          if (feedbackHistory.length > 0) {
+          console.log('🏁 Video ended - generating report');
+          if (isCalibrationMode && rawMeasurements.length > 0) {
+            // Display calibration results
+            displayCalibrationResults(rawMeasurements);
+            console.log('📊 Calibration data captured:', rawMeasurements.length, 'measurements');
+          } else if (!isCalibrationMode && feedbackHistory.length > 0) {
+            // Display normal summary report
             const summary = calculateSummary(feedbackHistory);
             displaySummaryReport(summary);
             console.log('📊 Summary report displayed with', feedbackHistory.length, 'data points');
@@ -617,17 +801,23 @@
               window.drawConnectors(canvasCtx, results.poseLandmarks, window.POSE_CONNECTIONS, { color: '#00FF00', lineWidth: 4 });
               window.drawLandmarks(canvasCtx, results.poseLandmarks, { color: '#FF0000', radius: 2 });
 
-              // Collect data for summary report (every 30 frames = ~1 second)
+              // Collect data (every 30 frames = ~1 second)
               if (resultsCount % 30 === 0) {
-                const feedbackArray = analyzeSkiForm(results.poseLandmarks);
+                if (isCalibrationMode) {
+                  // Calibration mode: collect raw measurements
+                  const measurements = extractRawMeasurements(results.poseLandmarks);
+                  rawMeasurements.push(measurements);
+                  console.log(`📊 Calibration data: ${rawMeasurements.length} samples collected`);
+                } else {
+                  // Normal mode: collect feedback for comparison
+                  const feedbackArray = analyzeSkiForm(results.poseLandmarks);
+                  feedbackHistory.push(feedbackArray);
 
-                // Store feedback data for summary
-                feedbackHistory.push(feedbackArray);
-
-                // Log to console for debugging
-                const totalScore = feedbackArray.reduce((sum, item) => sum + item.score, 0);
-                const overallScore = Math.round(totalScore / feedbackArray.length);
-                console.log(`📊 Data collected (${feedbackHistory.length} samples) - Current score: ${overallScore}/100`);
+                  // Log to console for debugging
+                  const totalScore = feedbackArray.reduce((sum, item) => sum + item.score, 0);
+                  const overallScore = Math.round(totalScore / feedbackArray.length);
+                  console.log(`📊 Data collected (${feedbackHistory.length} samples) - Current score: ${overallScore}/100`);
+                }
               }
           }
       }
