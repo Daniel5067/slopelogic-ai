@@ -75,34 +75,30 @@
     // ============================================
     const IDEAL_SKI_FORM = {
       kneeAngle: {
-        min: 120,
-        max: 145,
+        min: 148,
+        max: 161,
         unit: "degrees",
         description: "Athletic stance with proper knee flex"
       },
       hipPosition: {
-        // Hip should be slightly forward - measured as horizontal offset
-        minForward: 0,  // cm
-        maxForward: 15,
+        minForward: -2.4,
+        maxForward: 1.2,
         unit: "cm",
         description: "Hips slightly forward of shoulders for balance"
       },
       stanceWidth: {
-        // As percentage of shoulder width
-        minPercent: 95,
-        maxPercent: 115,
+        minPercent: 70,
+        maxPercent: 84,
         unit: "percent",
         description: "Approximately shoulder-width stance"
       },
       torsoAngle: {
-        // Angle from vertical (0 = perfectly upright)
-        min: 5,   // slightly forward lean
-        max: 20,  // moderate forward lean
+        min: 10,
+        max: 16,
         unit: "degrees",
         description: "Slight forward lean in upper body"
       },
       weightDistribution: {
-        // Left/right balance percentage (50 = perfectly centered)
         min: 45,
         max: 55,
         unit: "percent",
