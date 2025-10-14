@@ -310,14 +310,25 @@
     // SUMMARY REPORT FUNCTIONS
     // ============================================
 
-    function calculateScore(value, min, max) {
+    function calculateScore(value, min, max, metricName = '') {
       if (value >= min && value <= max) {
+        console.log(`✅ ${metricName}: ${value.toFixed(1)} is in range [${min}, ${max}] → Score: 100`);
         return 100;
       }
+
       const midpoint = (min + max) / 2;
       const tolerance = (max - min) / 2;
       const deviation = Math.abs(value - midpoint);
-      const score = Math.max(0, 100 - (deviation / tolerance) * 50);
+      const beyondRange = deviation - tolerance; // How far past the edge of the ideal range
+
+      // Gradual scoring: lose 20 points per tolerance unit beyond the range
+      // This means: 1 tolerance past edge = 80, 2 tolerances = 60, 3 = 40, 4 = 20, 5+ = 0
+      const score = Math.max(0, 100 - (beyondRange / tolerance) * 20);
+
+      console.log(`⚠️ ${metricName}: ${value.toFixed(1)} outside range [${min}, ${max}]`);
+      console.log(`   Midpoint: ${midpoint.toFixed(1)}, Tolerance: ${tolerance.toFixed(1)}, Deviation: ${deviation.toFixed(1)}`);
+      console.log(`   Beyond range: ${beyondRange.toFixed(1)}, Score: ${Math.round(score)}`);
+
       return Math.round(score);
     }
 
@@ -353,27 +364,37 @@
       const weightStats = calculateStats(weightDistributions);
 
       // 1. Knee Angle Analysis
-      const kneeScore = calculateScore(kneeStats.avg, IDEAL_SKI_FORM.kneeAngle.min, IDEAL_SKI_FORM.kneeAngle.max);
+      const kneeScore = calculateScore(kneeStats.avg, IDEAL_SKI_FORM.kneeAngle.min, IDEAL_SKI_FORM.kneeAngle.max, 'Knee Angle');
       let kneeMessage = '';
       let kneeEmoji = '';
       let kneeStatus = '';
 
       if (kneeStats.avg < IDEAL_SKI_FORM.kneeAngle.min) {
+        // Too much knee bend (squatting too low)
         kneeEmoji = kneeStats.avg < 140 ? "🔴" : "🟡";
         kneeStatus = kneeStats.avg < 140 ? "error" : "warning";
-        kneeMessage = `Your average knee angle was ${kneeStats.avg.toFixed(0)}° (ideal: ${IDEAL_SKI_FORM.kneeAngle.min}-${IDEAL_SKI_FORM.kneeAngle.max}°). Try maintaining less knee bend throughout your run.`;
+        if (kneeStats.avg < 140) {
+          kneeMessage = "Your knees are bent way too much - stand up taller! You shouldn't be squatting so low.";
+        } else {
+          kneeMessage = "Your knees are bent a bit too much - try standing up a little taller.";
+        }
       } else if (kneeStats.avg > IDEAL_SKI_FORM.kneeAngle.max) {
+        // Legs too straight
         kneeEmoji = kneeStats.avg > 170 ? "🔴" : "🟡";
         kneeStatus = kneeStats.avg > 170 ? "error" : "warning";
-        kneeMessage = `Your average knee angle was ${kneeStats.avg.toFixed(0)}° (ideal: ${IDEAL_SKI_FORM.kneeAngle.min}-${IDEAL_SKI_FORM.kneeAngle.max}°). Try maintaining more consistent knee bend.`;
+        if (kneeStats.avg > 170) {
+          kneeMessage = "Your knees are too straight - bend them more, like you're sitting on a chair!";
+        } else {
+          kneeMessage = "Your knees need a bit more flex - try bending them a little more.";
+        }
       } else {
         kneeEmoji = "🟢";
         kneeStatus = "good";
-        kneeMessage = `Your average knee angle was ${kneeStats.avg.toFixed(0)}° - perfect! You maintained excellent knee bend throughout.`;
+        kneeMessage = "Perfect knee bend! 💪 You kept your knees flexed just right throughout your run.";
       }
 
       summary.push({
-        category: "Knee Angle",
+        category: "Knee Bend",
         score: kneeScore,
         message: kneeMessage,
         emoji: kneeEmoji,
@@ -384,27 +405,37 @@
       });
 
       // 2. Hip Position Analysis
-      const hipScore = calculateScore(hipStats.avg, IDEAL_SKI_FORM.hipPosition.minForward, IDEAL_SKI_FORM.hipPosition.maxForward);
+      const hipScore = calculateScore(hipStats.avg, IDEAL_SKI_FORM.hipPosition.minForward, IDEAL_SKI_FORM.hipPosition.maxForward, 'Hip Position');
       let hipMessage = '';
       let hipEmoji = '';
       let hipStatus = '';
 
       if (hipStats.avg < IDEAL_SKI_FORM.hipPosition.minForward) {
+        // Hips too far back
         hipEmoji = hipStats.avg < -10 ? "🔴" : "🟡";
         hipStatus = hipStats.avg < -10 ? "error" : "warning";
-        hipMessage = `Your hips averaged too far back (ideal: ${IDEAL_SKI_FORM.hipPosition.minForward} to ${IDEAL_SKI_FORM.hipPosition.maxForward}). Focus on moving weight forward.`;
+        if (hipStats.avg < -10) {
+          hipMessage = "You're leaning back too much - move your hips forward! Pretend you're reaching for something in front of you.";
+        } else {
+          hipMessage = "Try leaning forward just a bit more from your hips.";
+        }
       } else if (hipStats.avg > IDEAL_SKI_FORM.hipPosition.maxForward) {
+        // Hips too far forward
         hipEmoji = hipStats.avg > 10 ? "🔴" : "🟡";
         hipStatus = hipStats.avg > 10 ? "error" : "warning";
-        hipMessage = `Your hips averaged too far forward (ideal: ${IDEAL_SKI_FORM.hipPosition.minForward} to ${IDEAL_SKI_FORM.hipPosition.maxForward}). Shift weight back slightly.`;
+        if (hipStats.avg > 10) {
+          hipMessage = "You're leaning too far forward - stand up a bit straighter!";
+        } else {
+          hipMessage = "Stand up just a tiny bit straighter.";
+        }
       } else {
         hipEmoji = "🟢";
         hipStatus = "good";
-        hipMessage = `Perfect hip alignment throughout your run! Your balance was consistently centered.`;
+        hipMessage = "Great balance! You stayed centered perfectly throughout your run.";
       }
 
       summary.push({
-        category: "Hip Position",
+        category: "Balance",
         score: hipScore,
         message: hipMessage,
         emoji: hipEmoji,
@@ -415,23 +446,33 @@
       });
 
       // 3. Stance Width Analysis
-      const stanceScore = calculateScore(stanceStats.avg, IDEAL_SKI_FORM.stanceWidth.minPercent, IDEAL_SKI_FORM.stanceWidth.maxPercent);
+      const stanceScore = calculateScore(stanceStats.avg, IDEAL_SKI_FORM.stanceWidth.minPercent, IDEAL_SKI_FORM.stanceWidth.maxPercent, 'Stance Width');
       let stanceMessage = '';
       let stanceEmoji = '';
       let stanceStatus = '';
 
       if (stanceStats.avg < IDEAL_SKI_FORM.stanceWidth.minPercent) {
+        // Feet too close together
         stanceEmoji = stanceStats.avg < 60 ? "🔴" : "🟡";
         stanceStatus = stanceStats.avg < 60 ? "error" : "warning";
-        stanceMessage = `Your average stance was ${stanceStats.avg.toFixed(0)}% of shoulder width (ideal: ${IDEAL_SKI_FORM.stanceWidth.minPercent}-${IDEAL_SKI_FORM.stanceWidth.maxPercent}%). Try widening your stance.`;
+        if (stanceStats.avg < 60) {
+          stanceMessage = "Your feet are way too close together - stand wider, about shoulder-width apart!";
+        } else {
+          stanceMessage = "Your feet are a bit too close - try standing a little wider.";
+        }
       } else if (stanceStats.avg > IDEAL_SKI_FORM.stanceWidth.maxPercent) {
+        // Feet too far apart
         stanceEmoji = stanceStats.avg > 100 ? "🔴" : "🟡";
         stanceStatus = stanceStats.avg > 100 ? "error" : "warning";
-        stanceMessage = `Your average stance was ${stanceStats.avg.toFixed(0)}% of shoulder width (ideal: ${IDEAL_SKI_FORM.stanceWidth.minPercent}-${IDEAL_SKI_FORM.stanceWidth.maxPercent}%). Try bringing feet closer together.`;
+        if (stanceStats.avg > 100) {
+          stanceMessage = "Your feet are too far apart - bring them closer together!";
+        } else {
+          stanceMessage = "Your feet are a bit too wide - bring them slightly closer together.";
+        }
       } else {
         stanceEmoji = "🟢";
         stanceStatus = "good";
-        stanceMessage = `Your average stance width was ${stanceStats.avg.toFixed(0)}% - excellent! You maintained proper width throughout.`;
+        stanceMessage = "Perfect stance width! Your feet were just right - not too wide, not too narrow.";
       }
 
       summary.push({
@@ -446,27 +487,37 @@
       });
 
       // 4. Torso Angle Analysis
-      const torsoScore = calculateScore(torsoStats.avg, IDEAL_SKI_FORM.torsoAngle.min, IDEAL_SKI_FORM.torsoAngle.max);
+      const torsoScore = calculateScore(torsoStats.avg, IDEAL_SKI_FORM.torsoAngle.min, IDEAL_SKI_FORM.torsoAngle.max, 'Torso Angle');
       let torsoMessage = '';
       let torsoEmoji = '';
       let torsoStatus = '';
 
       if (torsoStats.avg < IDEAL_SKI_FORM.torsoAngle.min) {
+        // Too upright
         torsoEmoji = torsoStats.avg < 5 ? "🔴" : "🟡";
         torsoStatus = torsoStats.avg < 5 ? "error" : "warning";
-        torsoMessage = `Your average torso angle was ${torsoStats.avg.toFixed(0)}° (ideal: ${IDEAL_SKI_FORM.torsoAngle.min}-${IDEAL_SKI_FORM.torsoAngle.max}°). You were too upright - lean forward more for better control.`;
+        if (torsoStats.avg < 5) {
+          torsoMessage = "You're standing too straight up - lean forward more from your hips, like you're riding a bike!";
+        } else {
+          torsoMessage = "Lean forward a bit more from your hips - you're standing a little too upright.";
+        }
       } else if (torsoStats.avg > IDEAL_SKI_FORM.torsoAngle.max) {
+        // Leaning too far forward
         torsoEmoji = torsoStats.avg > 25 ? "🔴" : "🟡";
         torsoStatus = torsoStats.avg > 25 ? "error" : "warning";
-        torsoMessage = `Your average torso angle was ${torsoStats.avg.toFixed(0)}° (ideal: ${IDEAL_SKI_FORM.torsoAngle.min}-${IDEAL_SKI_FORM.torsoAngle.max}°). You were leaning too far forward - stand up slightly.`;
+        if (torsoStats.avg > 25) {
+          torsoMessage = "You're leaning way too far forward - stand up straighter!";
+        } else {
+          torsoMessage = "You're leaning a bit too far forward - stand up just a little straighter.";
+        }
       } else {
         torsoEmoji = "🟢";
         torsoStatus = "good";
-        torsoMessage = `Your average torso angle was ${torsoStats.avg.toFixed(0)}° - perfect! You maintained good forward lean throughout.`;
+        torsoMessage = "Nice forward lean! You kept your body in the perfect position.";
       }
 
       summary.push({
-        category: "Torso Angle",
+        category: "Forward Lean",
         score: torsoScore,
         message: torsoMessage,
         emoji: torsoEmoji,
@@ -477,27 +528,37 @@
       });
 
       // 5. Weight Distribution Analysis
-      const weightScore = calculateScore(weightStats.avg, IDEAL_SKI_FORM.weightDistribution.min, IDEAL_SKI_FORM.weightDistribution.max);
+      const weightScore = calculateScore(weightStats.avg, IDEAL_SKI_FORM.weightDistribution.min, IDEAL_SKI_FORM.weightDistribution.max, 'Weight Distribution');
       let weightMessage = '';
       let weightEmoji = '';
       let weightStatus = '';
 
       if (weightStats.avg < IDEAL_SKI_FORM.weightDistribution.min) {
+        // Weight too far left
         weightEmoji = weightStats.avg < 35 ? "🔴" : "🟡";
         weightStatus = weightStats.avg < 35 ? "error" : "warning";
-        weightMessage = `Your weight averaged ${weightStats.avg.toFixed(0)}% (ideal: ${IDEAL_SKI_FORM.weightDistribution.min}-${IDEAL_SKI_FORM.weightDistribution.max}%). You favored your left side - work on centering your balance.`;
+        if (weightStats.avg < 35) {
+          weightMessage = "You're leaning way too much to your left side - try to keep your weight centered between both feet!";
+        } else {
+          weightMessage = "You're leaning a bit to your left - try to stay more centered between both feet.";
+        }
       } else if (weightStats.avg > IDEAL_SKI_FORM.weightDistribution.max) {
+        // Weight too far right
         weightEmoji = weightStats.avg > 65 ? "🔴" : "🟡";
         weightStatus = weightStats.avg > 65 ? "error" : "warning";
-        weightMessage = `Your weight averaged ${weightStats.avg.toFixed(0)}% (ideal: ${IDEAL_SKI_FORM.weightDistribution.min}-${IDEAL_SKI_FORM.weightDistribution.max}%). You favored your right side - work on centering your balance.`;
+        if (weightStats.avg > 65) {
+          weightMessage = "You're leaning way too much to your right side - try to keep your weight centered between both feet!";
+        } else {
+          weightMessage = "You're leaning a bit to your right - try to stay more centered between both feet.";
+        }
       } else {
         weightEmoji = "🟢";
         weightStatus = "good";
-        weightMessage = `Your average weight distribution was ${weightStats.avg.toFixed(0)}% - perfect! You maintained excellent balance throughout.`;
+        weightMessage = "Perfect balance between both feet! You stayed centered throughout your run.";
       }
 
       summary.push({
-        category: "Weight Distribution",
+        category: "Left-Right Balance",
         score: weightScore,
         message: weightMessage,
         emoji: weightEmoji,
