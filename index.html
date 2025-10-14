@@ -242,7 +242,7 @@
       return Math.sqrt(dx * dx + dy * dy);
     }
 
-    function analyzeSkiForm(landmarks) {
+    function extractMeasurements(landmarks) {
       const LEFT_SHOULDER = 11;
       const RIGHT_SHOULDER = 12;
       const LEFT_HIP = 23;
@@ -251,19 +251,6 @@
       const RIGHT_KNEE = 26;
       const LEFT_ANKLE = 27;
       const RIGHT_ANKLE = 28;
-
-      const feedback = [];
-
-      function calculateScore(value, min, max) {
-        if (value >= min && value <= max) {
-          return 100;
-        }
-        const midpoint = (min + max) / 2;
-        const tolerance = (max - min) / 2;
-        const deviation = Math.abs(value - midpoint);
-        const score = Math.max(0, 100 - (deviation / tolerance) * 50);
-        return Math.round(score);
-      }
 
       // 1. Knee angles
       const leftKneeAngle = calculateAngle(
@@ -276,73 +263,16 @@
         landmarks[RIGHT_KNEE],
         landmarks[RIGHT_ANKLE]
       );
-
       const avgKneeAngle = (leftKneeAngle + rightKneeAngle) / 2;
-      const kneeScore = calculateScore(avgKneeAngle, IDEAL_SKI_FORM.kneeAngle.min, IDEAL_SKI_FORM.kneeAngle.max);
-
-      if (avgKneeAngle < IDEAL_SKI_FORM.kneeAngle.min) {
-        feedback.push({
-          category: "Knee Angle",
-          emoji: avgKneeAngle < 140 ? "🔴" : "🟡",
-          status: avgKneeAngle < 140 ? "error" : "warning",
-          message: `Too much knee bend (${avgKneeAngle.toFixed(0)}°). Stand up slightly.`,
-          score: kneeScore
-        });
-      } else if (avgKneeAngle > IDEAL_SKI_FORM.kneeAngle.max) {
-        feedback.push({
-          category: "Knee Angle",
-          emoji: avgKneeAngle > 170 ? "🔴" : "🟡",
-          status: avgKneeAngle > 170 ? "error" : "warning",
-          message: `Legs too straight (${avgKneeAngle.toFixed(0)}°). Bend knees more.`,
-          score: kneeScore
-        });
-      } else {
-        feedback.push({
-          category: "Knee Angle",
-          emoji: "🟢",
-          status: "good",
-          message: `Perfect knee bend (${avgKneeAngle.toFixed(0)}°)`,
-          score: kneeScore
-        });
-      }
 
       // 2. Hip position
       const leftShoulder = landmarks[LEFT_SHOULDER];
       const rightShoulder = landmarks[RIGHT_SHOULDER];
       const leftHip = landmarks[LEFT_HIP];
       const rightHip = landmarks[RIGHT_HIP];
-
       const shoulderMidX = (leftShoulder.x + rightShoulder.x) / 2;
       const hipMidX = (leftHip.x + rightHip.x) / 2;
       const hipOffset = (hipMidX - shoulderMidX) * 100;
-
-      const hipScore = calculateScore(hipOffset, IDEAL_SKI_FORM.hipPosition.minForward, IDEAL_SKI_FORM.hipPosition.maxForward);
-
-      if (hipOffset < IDEAL_SKI_FORM.hipPosition.minForward) {
-        feedback.push({
-          category: "Hip Position",
-          emoji: hipOffset < -10 ? "🔴" : "🟡",
-          status: hipOffset < -10 ? "error" : "warning",
-          message: "Hips too far back. Move weight forward.",
-          score: hipScore
-        });
-      } else if (hipOffset > IDEAL_SKI_FORM.hipPosition.maxForward) {
-        feedback.push({
-          category: "Hip Position",
-          emoji: hipOffset > 10 ? "🔴" : "🟡",
-          status: hipOffset > 10 ? "error" : "warning",
-          message: "Hips too far forward. Shift weight back slightly.",
-          score: hipScore
-        });
-      } else {
-        feedback.push({
-          category: "Hip Position",
-          emoji: "🟢",
-          status: "good",
-          message: "Perfect hip alignment",
-          score: hipScore
-        });
-      }
 
       // 3. Stance width
       const shoulderWidth = calculateDistance(leftShoulder, rightShoulder);
@@ -351,66 +281,10 @@
       const ankleWidth = calculateDistance(leftAnkle, rightAnkle);
       const stanceWidthPercent = (ankleWidth / shoulderWidth) * 100;
 
-      const stanceScore = calculateScore(stanceWidthPercent, IDEAL_SKI_FORM.stanceWidth.minPercent, IDEAL_SKI_FORM.stanceWidth.maxPercent);
-
-      if (stanceWidthPercent < IDEAL_SKI_FORM.stanceWidth.minPercent) {
-        feedback.push({
-          category: "Stance Width",
-          emoji: stanceWidthPercent < 60 ? "🔴" : "🟡",
-          status: stanceWidthPercent < 60 ? "error" : "warning",
-          message: "Stance too narrow. Widen your feet to shoulder width.",
-          score: stanceScore
-        });
-      } else if (stanceWidthPercent > IDEAL_SKI_FORM.stanceWidth.maxPercent) {
-        feedback.push({
-          category: "Stance Width",
-          emoji: stanceWidthPercent > 100 ? "🔴" : "🟡",
-          status: stanceWidthPercent > 100 ? "error" : "warning",
-          message: "Stance too wide. Bring feet closer together.",
-          score: stanceScore
-        });
-      } else {
-        feedback.push({
-          category: "Stance Width",
-          emoji: "🟢",
-          status: "good",
-          message: "Excellent stance width",
-          score: stanceScore
-        });
-      }
-
       // 4. Torso angle
       const shoulderMidY = (leftShoulder.y + rightShoulder.y) / 2;
       const hipMidY = (leftHip.y + rightHip.y) / 2;
       const torsoAngle = Math.atan2(Math.abs(hipMidX - shoulderMidX), Math.abs(hipMidY - shoulderMidY)) * 180 / Math.PI;
-
-      const torsoScore = calculateScore(torsoAngle, IDEAL_SKI_FORM.torsoAngle.min, IDEAL_SKI_FORM.torsoAngle.max);
-
-      if (torsoAngle < IDEAL_SKI_FORM.torsoAngle.min) {
-        feedback.push({
-          category: "Torso Angle",
-          emoji: torsoAngle < 5 ? "🔴" : "🟡",
-          status: torsoAngle < 5 ? "error" : "warning",
-          message: "Too upright. Lean forward slightly for better control.",
-          score: torsoScore
-        });
-      } else if (torsoAngle > IDEAL_SKI_FORM.torsoAngle.max) {
-        feedback.push({
-          category: "Torso Angle",
-          emoji: torsoAngle > 25 ? "🔴" : "🟡",
-          status: torsoAngle > 25 ? "error" : "warning",
-          message: "Leaning too far forward. Stand up slightly.",
-          score: torsoScore
-        });
-      } else {
-        feedback.push({
-          category: "Torso Angle",
-          emoji: "🟢",
-          status: "good",
-          message: "Perfect forward lean",
-          score: torsoScore
-        });
-      }
 
       // 5. Weight distribution
       const ankleRangeX = Math.abs(rightAnkle.x - leftAnkle.x);
@@ -423,91 +297,214 @@
         weightBalance = 50;
       }
 
-      const weightScore = calculateScore(weightBalance, IDEAL_SKI_FORM.weightDistribution.min, IDEAL_SKI_FORM.weightDistribution.max);
-
-      if (weightBalance < IDEAL_SKI_FORM.weightDistribution.min) {
-        feedback.push({
-          category: "Weight Distribution",
-          emoji: weightBalance < 35 ? "🔴" : "🟡",
-          status: weightBalance < 35 ? "error" : "warning",
-          message: "Weight shifted to the left. Center your balance.",
-          score: weightScore
-        });
-      } else if (weightBalance > IDEAL_SKI_FORM.weightDistribution.max) {
-        feedback.push({
-          category: "Weight Distribution",
-          emoji: weightBalance > 65 ? "🔴" : "🟡",
-          status: weightBalance > 65 ? "error" : "warning",
-          message: "Weight shifted to the right. Center your balance.",
-          score: weightScore
-        });
-      } else {
-        feedback.push({
-          category: "Weight Distribution",
-          emoji: "🟢",
-          status: "good",
-          message: "Perfect weight balance",
-          score: weightScore
-        });
-      }
-
-      return feedback;
+      return {
+        kneeAngle: avgKneeAngle,
+        hipPosition: hipOffset,
+        stanceWidth: stanceWidthPercent,
+        torsoAngle: torsoAngle,
+        weightDistribution: weightBalance
+      };
     }
 
     // ============================================
     // SUMMARY REPORT FUNCTIONS
     // ============================================
 
-    function calculateSummary(feedbackHistory) {
-      if (feedbackHistory.length === 0) return null;
+    function calculateScore(value, min, max) {
+      if (value >= min && value <= max) {
+        return 100;
+      }
+      const midpoint = (min + max) / 2;
+      const tolerance = (max - min) / 2;
+      const deviation = Math.abs(value - midpoint);
+      const score = Math.max(0, 100 - (deviation / tolerance) * 50);
+      return Math.round(score);
+    }
 
-      const metricData = {};
+    function calculateStats(values) {
+      const avg = values.reduce((a, b) => a + b, 0) / values.length;
+      const min = Math.min(...values);
+      const max = Math.max(...values);
 
-      feedbackHistory.forEach(feedbackArray => {
-        feedbackArray.forEach(item => {
-          if (!metricData[item.category]) {
-            metricData[item.category] = {
-              category: item.category,
-              scores: [],
-              messages: []
-            };
-          }
-          metricData[item.category].scores.push(item.score);
-          metricData[item.category].messages.push(item.message);
-        });
+      const squaredDiffs = values.map(v => Math.pow(v - avg, 2));
+      const variance = squaredDiffs.reduce((a, b) => a + b, 0) / values.length;
+      const stdDev = Math.sqrt(variance);
+
+      return { avg, min, max, stdDev };
+    }
+
+    function analyzeAveragePerformance(measurements) {
+      if (measurements.length === 0) return null;
+
+      const summary = [];
+
+      // Extract all values for each metric
+      const kneeAngles = measurements.map(m => m.kneeAngle);
+      const hipPositions = measurements.map(m => m.hipPosition);
+      const stanceWidths = measurements.map(m => m.stanceWidth);
+      const torsoAngles = measurements.map(m => m.torsoAngle);
+      const weightDistributions = measurements.map(m => m.weightDistribution);
+
+      // Calculate stats for each metric
+      const kneeStats = calculateStats(kneeAngles);
+      const hipStats = calculateStats(hipPositions);
+      const stanceStats = calculateStats(stanceWidths);
+      const torsoStats = calculateStats(torsoAngles);
+      const weightStats = calculateStats(weightDistributions);
+
+      // 1. Knee Angle Analysis
+      const kneeScore = calculateScore(kneeStats.avg, IDEAL_SKI_FORM.kneeAngle.min, IDEAL_SKI_FORM.kneeAngle.max);
+      let kneeMessage = '';
+      let kneeEmoji = '';
+      let kneeStatus = '';
+
+      if (kneeStats.avg < IDEAL_SKI_FORM.kneeAngle.min) {
+        kneeEmoji = kneeStats.avg < 140 ? "🔴" : "🟡";
+        kneeStatus = kneeStats.avg < 140 ? "error" : "warning";
+        kneeMessage = `Your average knee angle was ${kneeStats.avg.toFixed(0)}° (ideal: ${IDEAL_SKI_FORM.kneeAngle.min}-${IDEAL_SKI_FORM.kneeAngle.max}°). Try maintaining less knee bend throughout your run.`;
+      } else if (kneeStats.avg > IDEAL_SKI_FORM.kneeAngle.max) {
+        kneeEmoji = kneeStats.avg > 170 ? "🔴" : "🟡";
+        kneeStatus = kneeStats.avg > 170 ? "error" : "warning";
+        kneeMessage = `Your average knee angle was ${kneeStats.avg.toFixed(0)}° (ideal: ${IDEAL_SKI_FORM.kneeAngle.min}-${IDEAL_SKI_FORM.kneeAngle.max}°). Try maintaining more consistent knee bend.`;
+      } else {
+        kneeEmoji = "🟢";
+        kneeStatus = "good";
+        kneeMessage = `Your average knee angle was ${kneeStats.avg.toFixed(0)}° - perfect! You maintained excellent knee bend throughout.`;
+      }
+
+      summary.push({
+        category: "Knee Angle",
+        score: kneeScore,
+        message: kneeMessage,
+        emoji: kneeEmoji,
+        status: kneeStatus,
+        average: kneeStats.avg.toFixed(0) + "°",
+        range: `${kneeStats.min.toFixed(0)}-${kneeStats.max.toFixed(0)}°`,
+        consistency: kneeStats.stdDev.toFixed(1) + "°"
       });
 
-      const summary = Object.keys(metricData).map(category => {
-        const data = metricData[category];
-        const avgScore = Math.round(data.scores.reduce((a, b) => a + b, 0) / data.scores.length);
+      // 2. Hip Position Analysis
+      const hipScore = calculateScore(hipStats.avg, IDEAL_SKI_FORM.hipPosition.minForward, IDEAL_SKI_FORM.hipPosition.maxForward);
+      let hipMessage = '';
+      let hipEmoji = '';
+      let hipStatus = '';
 
-        const messageCounts = {};
-        data.messages.forEach(msg => {
-          messageCounts[msg] = (messageCounts[msg] || 0) + 1;
-        });
-        const mostCommonMessage = Object.keys(messageCounts).reduce((a, b) =>
-          messageCounts[a] > messageCounts[b] ? a : b
-        );
+      if (hipStats.avg < IDEAL_SKI_FORM.hipPosition.minForward) {
+        hipEmoji = hipStats.avg < -10 ? "🔴" : "🟡";
+        hipStatus = hipStats.avg < -10 ? "error" : "warning";
+        hipMessage = `Your hips averaged too far back (ideal: ${IDEAL_SKI_FORM.hipPosition.minForward} to ${IDEAL_SKI_FORM.hipPosition.maxForward}). Focus on moving weight forward.`;
+      } else if (hipStats.avg > IDEAL_SKI_FORM.hipPosition.maxForward) {
+        hipEmoji = hipStats.avg > 10 ? "🔴" : "🟡";
+        hipStatus = hipStats.avg > 10 ? "error" : "warning";
+        hipMessage = `Your hips averaged too far forward (ideal: ${IDEAL_SKI_FORM.hipPosition.minForward} to ${IDEAL_SKI_FORM.hipPosition.maxForward}). Shift weight back slightly.`;
+      } else {
+        hipEmoji = "🟢";
+        hipStatus = "good";
+        hipMessage = `Perfect hip alignment throughout your run! Your balance was consistently centered.`;
+      }
 
-        let emoji, status;
-        if (avgScore >= 80) {
-          emoji = '🟢';
-          status = 'good';
-        } else if (avgScore >= 60) {
-          emoji = '🟡';
-          status = 'warning';
-        } else {
-          emoji = '🔴';
-          status = 'error';
-        }
+      summary.push({
+        category: "Hip Position",
+        score: hipScore,
+        message: hipMessage,
+        emoji: hipEmoji,
+        status: hipStatus,
+        average: hipStats.avg.toFixed(1),
+        range: `${hipStats.min.toFixed(1)} to ${hipStats.max.toFixed(1)}`,
+        consistency: hipStats.stdDev.toFixed(1)
+      });
 
-        return {
-          category,
-          score: avgScore,
-          message: mostCommonMessage,
-          emoji,
-          status
-        };
+      // 3. Stance Width Analysis
+      const stanceScore = calculateScore(stanceStats.avg, IDEAL_SKI_FORM.stanceWidth.minPercent, IDEAL_SKI_FORM.stanceWidth.maxPercent);
+      let stanceMessage = '';
+      let stanceEmoji = '';
+      let stanceStatus = '';
+
+      if (stanceStats.avg < IDEAL_SKI_FORM.stanceWidth.minPercent) {
+        stanceEmoji = stanceStats.avg < 60 ? "🔴" : "🟡";
+        stanceStatus = stanceStats.avg < 60 ? "error" : "warning";
+        stanceMessage = `Your average stance was ${stanceStats.avg.toFixed(0)}% of shoulder width (ideal: ${IDEAL_SKI_FORM.stanceWidth.minPercent}-${IDEAL_SKI_FORM.stanceWidth.maxPercent}%). Try widening your stance.`;
+      } else if (stanceStats.avg > IDEAL_SKI_FORM.stanceWidth.maxPercent) {
+        stanceEmoji = stanceStats.avg > 100 ? "🔴" : "🟡";
+        stanceStatus = stanceStats.avg > 100 ? "error" : "warning";
+        stanceMessage = `Your average stance was ${stanceStats.avg.toFixed(0)}% of shoulder width (ideal: ${IDEAL_SKI_FORM.stanceWidth.minPercent}-${IDEAL_SKI_FORM.stanceWidth.maxPercent}%). Try bringing feet closer together.`;
+      } else {
+        stanceEmoji = "🟢";
+        stanceStatus = "good";
+        stanceMessage = `Your average stance width was ${stanceStats.avg.toFixed(0)}% - excellent! You maintained proper width throughout.`;
+      }
+
+      summary.push({
+        category: "Stance Width",
+        score: stanceScore,
+        message: stanceMessage,
+        emoji: stanceEmoji,
+        status: stanceStatus,
+        average: stanceStats.avg.toFixed(0) + "%",
+        range: `${stanceStats.min.toFixed(0)}-${stanceStats.max.toFixed(0)}%`,
+        consistency: stanceStats.stdDev.toFixed(1) + "%"
+      });
+
+      // 4. Torso Angle Analysis
+      const torsoScore = calculateScore(torsoStats.avg, IDEAL_SKI_FORM.torsoAngle.min, IDEAL_SKI_FORM.torsoAngle.max);
+      let torsoMessage = '';
+      let torsoEmoji = '';
+      let torsoStatus = '';
+
+      if (torsoStats.avg < IDEAL_SKI_FORM.torsoAngle.min) {
+        torsoEmoji = torsoStats.avg < 5 ? "🔴" : "🟡";
+        torsoStatus = torsoStats.avg < 5 ? "error" : "warning";
+        torsoMessage = `Your average torso angle was ${torsoStats.avg.toFixed(0)}° (ideal: ${IDEAL_SKI_FORM.torsoAngle.min}-${IDEAL_SKI_FORM.torsoAngle.max}°). You were too upright - lean forward more for better control.`;
+      } else if (torsoStats.avg > IDEAL_SKI_FORM.torsoAngle.max) {
+        torsoEmoji = torsoStats.avg > 25 ? "🔴" : "🟡";
+        torsoStatus = torsoStats.avg > 25 ? "error" : "warning";
+        torsoMessage = `Your average torso angle was ${torsoStats.avg.toFixed(0)}° (ideal: ${IDEAL_SKI_FORM.torsoAngle.min}-${IDEAL_SKI_FORM.torsoAngle.max}°). You were leaning too far forward - stand up slightly.`;
+      } else {
+        torsoEmoji = "🟢";
+        torsoStatus = "good";
+        torsoMessage = `Your average torso angle was ${torsoStats.avg.toFixed(0)}° - perfect! You maintained good forward lean throughout.`;
+      }
+
+      summary.push({
+        category: "Torso Angle",
+        score: torsoScore,
+        message: torsoMessage,
+        emoji: torsoEmoji,
+        status: torsoStatus,
+        average: torsoStats.avg.toFixed(0) + "°",
+        range: `${torsoStats.min.toFixed(0)}-${torsoStats.max.toFixed(0)}°`,
+        consistency: torsoStats.stdDev.toFixed(1) + "°"
+      });
+
+      // 5. Weight Distribution Analysis
+      const weightScore = calculateScore(weightStats.avg, IDEAL_SKI_FORM.weightDistribution.min, IDEAL_SKI_FORM.weightDistribution.max);
+      let weightMessage = '';
+      let weightEmoji = '';
+      let weightStatus = '';
+
+      if (weightStats.avg < IDEAL_SKI_FORM.weightDistribution.min) {
+        weightEmoji = weightStats.avg < 35 ? "🔴" : "🟡";
+        weightStatus = weightStats.avg < 35 ? "error" : "warning";
+        weightMessage = `Your weight averaged ${weightStats.avg.toFixed(0)}% (ideal: ${IDEAL_SKI_FORM.weightDistribution.min}-${IDEAL_SKI_FORM.weightDistribution.max}%). You favored your left side - work on centering your balance.`;
+      } else if (weightStats.avg > IDEAL_SKI_FORM.weightDistribution.max) {
+        weightEmoji = weightStats.avg > 65 ? "🔴" : "🟡";
+        weightStatus = weightStats.avg > 65 ? "error" : "warning";
+        weightMessage = `Your weight averaged ${weightStats.avg.toFixed(0)}% (ideal: ${IDEAL_SKI_FORM.weightDistribution.min}-${IDEAL_SKI_FORM.weightDistribution.max}%). You favored your right side - work on centering your balance.`;
+      } else {
+        weightEmoji = "🟢";
+        weightStatus = "good";
+        weightMessage = `Your average weight distribution was ${weightStats.avg.toFixed(0)}% - perfect! You maintained excellent balance throughout.`;
+      }
+
+      summary.push({
+        category: "Weight Distribution",
+        score: weightScore,
+        message: weightMessage,
+        emoji: weightEmoji,
+        status: weightStatus,
+        average: weightStats.avg.toFixed(0) + "%",
+        range: `${weightStats.min.toFixed(0)}-${weightStats.max.toFixed(0)}%`,
+        consistency: weightStats.stdDev.toFixed(1) + "%"
       });
 
       return summary;
@@ -524,7 +521,7 @@
       feedbackPanel.innerHTML = `
         <div style="text-align: center; border-bottom: 3px solid #667eea; padding-bottom: 20px; margin-bottom: 30px;">
           <h2 style="margin: 0 0 10px 0; font-size: 32px; color: #333; font-weight: 700;">📊 Performance Summary</h2>
-          <p style="color: #666; font-size: 14px;">Based on ${summary.length} metrics analyzed throughout your run</p>
+          <p style="color: #666; font-size: 14px;">Analysis based on average performance throughout your entire run</p>
         </div>
 
         <div style="font-size: 36px; font-weight: 700; text-align: center; margin-bottom: 40px; padding: 25px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 15px; color: white;">
@@ -538,8 +535,11 @@
               <div style="font-weight: 600; margin-bottom: 10px; font-size: 16px; color: #333;">
                 ${item.emoji} ${item.category} <span style="float: right; color: #f44336; font-size: 18px;">${item.score}/100</span>
               </div>
-              <div style="font-size: 15px; color: #666; padding-left: 15px;">
+              <div style="font-size: 15px; color: #666; padding-left: 15px; margin-bottom: 10px;">
                 → ${item.message}
+              </div>
+              <div style="font-size: 13px; color: #999; padding-left: 15px;">
+                <strong>Average:</strong> ${item.average} | <strong>Range:</strong> ${item.range} | <strong>Variation:</strong> ${item.consistency}
               </div>
             </div>
           `).join('')}
@@ -549,9 +549,17 @@
           <div style="margin-bottom: 35px;">
             <h3 style="font-size: 20px; margin: 0 0 20px 0; color: #4caf50; font-weight: 600;">✅ What You Did Well</h3>
             ${strengths.map(item => `
-              <div style="margin-bottom: 12px; padding: 18px; background: #f1f8f4; border-radius: 12px; border-left: 5px solid #4caf50; display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-weight: 600; color: #333; font-size: 16px;">${item.emoji} ${item.category}</span>
-                <span style="color: #4caf50; font-weight: 700; font-size: 18px;">${item.score}/100</span>
+              <div style="margin-bottom: 12px; padding: 18px; background: #f1f8f4; border-radius: 12px; border-left: 5px solid #4caf50;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <span style="font-weight: 600; color: #333; font-size: 16px;">${item.emoji} ${item.category}</span>
+                  <span style="color: #4caf50; font-weight: 700; font-size: 18px;">${item.score}/100</span>
+                </div>
+                <div style="font-size: 14px; color: #666; margin-bottom: 8px;">
+                  ${item.message}
+                </div>
+                <div style="font-size: 13px; color: #999;">
+                  <strong>Average:</strong> ${item.average} | <strong>Range:</strong> ${item.range} | <strong>Variation:</strong> ${item.consistency}
+                </div>
               </div>
             `).join('')}
           </div>
@@ -576,7 +584,7 @@
       const resultsCanvas = document.getElementById('resultsCanvas');
       const feedbackPanel = document.getElementById('feedbackPanel');
 
-      let feedbackHistory = [];
+      let allMeasurements = [];
 
       const pose = new Pose({
         locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`
@@ -594,7 +602,7 @@
       videoUpload.addEventListener('change', (event) => {
         const file = event.target.files[0];
         if (file) {
-          feedbackHistory = [];
+          allMeasurements = [];
           feedbackPanel.style.display = 'none';
           playerContainer.classList.remove('hidden');
           resultsVideo.src = URL.createObjectURL(file);
@@ -612,8 +620,8 @@
       });
 
       resultsVideo.addEventListener('ended', () => {
-        if (feedbackHistory.length > 0) {
-          const summary = calculateSummary(feedbackHistory);
+        if (allMeasurements.length > 0) {
+          const summary = analyzeAveragePerformance(allMeasurements);
           displaySummaryReport(summary);
         }
       });
@@ -632,8 +640,8 @@
           window.drawLandmarks(canvasCtx, results.poseLandmarks, { color: '#FF0000', radius: 2 });
 
           if (resultsCount % 30 === 0) {
-            const feedbackArray = analyzeSkiForm(results.poseLandmarks);
-            feedbackHistory.push(feedbackArray);
+            const measurements = extractMeasurements(results.poseLandmarks);
+            allMeasurements.push(measurements);
           }
         }
       }
