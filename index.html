@@ -306,8 +306,19 @@
       // 5. Calculate weight distribution (left/right balance)
       const leftAnkle = landmarks[LEFT_ANKLE];
       const rightAnkle = landmarks[RIGHT_ANKLE];
-      const ankleMidX = (leftAnkle.x + rightAnkle.x) / 2;
-      const weightBalance = ((hipMidX - ankleMidX) / ankleWidth + 0.5) * 100;
+
+      // Fixed weight distribution calculation
+      // 50% = centered, < 50% = shifted left, > 50% = shifted right
+      const ankleRangeX = Math.abs(rightAnkle.x - leftAnkle.x);
+      let weightBalance;
+      if (ankleRangeX > 0.001) { // Avoid division by zero
+        const hipShiftFromLeft = hipMidX - leftAnkle.x;
+        weightBalance = (hipShiftFromLeft / ankleRangeX) * 100;
+        // Clamp to 0-100 range
+        weightBalance = Math.max(0, Math.min(100, weightBalance));
+      } else {
+        weightBalance = 50; // Default to centered if ankles too close
+      }
 
       const weightScore = calculateScore(weightBalance, IDEAL_SKI_FORM.weightDistribution.min, IDEAL_SKI_FORM.weightDistribution.max);
 
@@ -369,37 +380,101 @@
       const hipOffset = (hipMidX - shoulderMidX) * 100;
 
       const shoulderWidth = calculateDistance(leftShoulder, rightShoulder);
-      const ankleWidth = calculateDistance(landmarks[LEFT_ANKLE], landmarks[RIGHT_ANKLE]);
+      const leftAnkle = landmarks[LEFT_ANKLE];
+      const rightAnkle = landmarks[RIGHT_ANKLE];
+      const ankleWidth = calculateDistance(leftAnkle, rightAnkle);
       const stanceWidthPercent = (ankleWidth / shoulderWidth) * 100;
 
       const shoulderMidY = (leftShoulder.y + rightShoulder.y) / 2;
       const hipMidY = (leftHip.y + rightHip.y) / 2;
       const torsoAngle = Math.atan2(Math.abs(hipMidX - shoulderMidX), Math.abs(hipMidY - shoulderMidY)) * 180 / Math.PI;
 
-      const leftAnkle = landmarks[LEFT_ANKLE];
-      const rightAnkle = landmarks[RIGHT_ANKLE];
+      // Fixed weight distribution calculation
+      // Calculate how far hips are shifted from center of ankle base
+      // 50% = centered, < 50% = shifted left, > 50% = shifted right
       const ankleMidX = (leftAnkle.x + rightAnkle.x) / 2;
-      const weightBalance = ((hipMidX - ankleMidX) / ankleWidth + 0.5) * 100;
+      const ankleRangeX = Math.abs(rightAnkle.x - leftAnkle.x);
 
-      return {
+      // Calculate hip shift as percentage from left ankle (0%) to right ankle (100%)
+      let weightBalance;
+      if (ankleRangeX > 0.001) { // Avoid division by zero
+        const hipShiftFromLeft = hipMidX - leftAnkle.x;
+        weightBalance = (hipShiftFromLeft / ankleRangeX) * 100;
+        // Clamp to 0-100 range
+        weightBalance = Math.max(0, Math.min(100, weightBalance));
+      } else {
+        weightBalance = 50; // Default to centered if ankles too close
+      }
+
+      // Validation
+      const measurements = {
         kneeAngle: avgKneeAngle,
         hipPosition: hipOffset,
         stanceWidth: stanceWidthPercent,
         torsoAngle: torsoAngle,
         weightDistribution: weightBalance
       };
+
+      // Check if measurements are valid
+      const isValid =
+        avgKneeAngle >= 90 && avgKneeAngle <= 180 &&
+        hipOffset >= -20 && hipOffset <= 20 &&
+        stanceWidthPercent >= 50 && stanceWidthPercent <= 200 &&
+        torsoAngle >= 0 && torsoAngle <= 45 &&
+        weightBalance >= 0 && weightBalance <= 100;
+
+      if (!isValid) {
+        console.warn('⚠️ Invalid measurement detected:', {
+          kneeAngle: avgKneeAngle.toFixed(1) + '° ' + (avgKneeAngle < 90 || avgKneeAngle > 180 ? '❌' : '✅'),
+          hipPosition: hipOffset.toFixed(1) + ' ' + (hipOffset < -20 || hipOffset > 20 ? '❌' : '✅'),
+          stanceWidth: stanceWidthPercent.toFixed(1) + '% ' + (stanceWidthPercent < 50 || stanceWidthPercent > 200 ? '❌' : '✅'),
+          torsoAngle: torsoAngle.toFixed(1) + '° ' + (torsoAngle < 0 || torsoAngle > 45 ? '❌' : '✅'),
+          weightBalance: weightBalance.toFixed(1) + '% ' + (weightBalance < 0 || weightBalance > 100 ? '❌' : '✅')
+        });
+      }
+
+      measurements.isValid = isValid;
+      return measurements;
     }
 
     // Display calibration results
     function displayCalibrationResults(rawMeasurements) {
       const feedbackPanel = document.getElementById('feedbackPanel');
 
-      // Calculate statistics for each metric
+      // Filter to only valid measurements
+      const validMeasurements = rawMeasurements.filter(m => m.isValid);
+      const totalCount = rawMeasurements.length;
+      const validCount = validMeasurements.length;
+      const invalidCount = totalCount - validCount;
+
+      console.log(`📊 Validation results: ${validCount} valid / ${totalCount} total (${invalidCount} rejected)`);
+
+      if (validCount === 0) {
+        feedbackPanel.innerHTML = `
+          <div style="text-align: center; padding: 40px;">
+            <h2 style="color: #F44336; margin-bottom: 20px;">❌ No Valid Measurements</h2>
+            <p>All ${totalCount} measurements were outside acceptable ranges.</p>
+            <p style="margin-top: 20px;">This usually means:</p>
+            <ul style="text-align: left; max-width: 400px; margin: 20px auto;">
+              <li>Video angle is not suitable (use side view)</li>
+              <li>Skier is too far from camera</li>
+              <li>Pose detection quality is poor</li>
+            </ul>
+            <button onclick="location.reload()" style="width: 100%; padding: 15px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 20px;">
+              🔄 Try Another Video
+            </button>
+          </div>
+        `;
+        feedbackPanel.style.display = 'block';
+        return;
+      }
+
+      // Calculate statistics for each metric (using only valid measurements)
       const stats = {};
       const metrics = ['kneeAngle', 'hipPosition', 'stanceWidth', 'torsoAngle', 'weightDistribution'];
 
       metrics.forEach(metric => {
-        const values = rawMeasurements.map(m => m[metric]);
+        const values = validMeasurements.map(m => m[metric]);
         const avg = values.reduce((a, b) => a + b, 0) / values.length;
         const min = Math.min(...values);
         const max = Math.max(...values);
@@ -443,7 +518,10 @@
       feedbackPanel.innerHTML = `
         <div style="text-align: center; border-bottom: 2px solid rgba(255,255,255,0.3); padding-bottom: 15px; margin-bottom: 20px;">
           <h2 style="margin: 0 0 10px 0; font-size: 24px;">📊 PROFESSIONAL REFERENCE DATA CAPTURED</h2>
-          <p style="opacity: 0.8; font-size: 14px; margin: 5px 0;">${rawMeasurements.length} measurements analyzed</p>
+          <p style="opacity: 0.8; font-size: 14px; margin: 5px 0;">
+            <span style="color: #4CAF50; font-weight: bold;">${validCount} valid</span> / ${totalCount} total measurements
+            ${invalidCount > 0 ? `<span style="color: #FFC107;"> (${invalidCount} rejected)</span>` : ''}
+          </p>
         </div>
 
         <div style="margin-bottom: 20px; font-size: 14px; line-height: 1.8;">
@@ -807,7 +885,14 @@
                   // Calibration mode: collect raw measurements
                   const measurements = extractRawMeasurements(results.poseLandmarks);
                   rawMeasurements.push(measurements);
-                  console.log(`📊 Calibration data: ${rawMeasurements.length} samples collected`);
+
+                  const validCount = rawMeasurements.filter(m => m.isValid).length;
+                  const totalCount = rawMeasurements.length;
+                  console.log(`📊 Calibration: ${validCount} valid / ${totalCount} total samples`);
+
+                  if (!measurements.isValid) {
+                    console.warn('⚠️ Last measurement rejected - see warning above for details');
+                  }
                 } else {
                   // Normal mode: collect feedback for comparison
                   const feedbackArray = analyzeSkiForm(results.poseLandmarks);
