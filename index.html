@@ -478,38 +478,48 @@
         const avg = values.reduce((a, b) => a + b, 0) / values.length;
         const min = Math.min(...values);
         const max = Math.max(...values);
-        stats[metric] = { avg, min, max };
+
+        // Calculate standard deviation
+        const squaredDiffs = values.map(v => Math.pow(v - avg, 2));
+        const variance = squaredDiffs.reduce((a, b) => a + b, 0) / values.length;
+        const stdDev = Math.sqrt(variance);
+
+        // Ideal range = avg ± 0.5 * stdDev (tighter zone around typical form)
+        const idealMin = avg - (0.5 * stdDev);
+        const idealMax = avg + (0.5 * stdDev);
+
+        stats[metric] = { avg, min, max, stdDev, idealMin, idealMax };
       });
 
-      // Generate code snippet for IDEAL_SKI_FORM
+      // Generate code snippet for IDEAL_SKI_FORM (using tighter stddev-based ranges)
       const codeSnippet = `const IDEAL_SKI_FORM = {
   kneeAngle: {
-    min: ${Math.round(stats.kneeAngle.min)},
-    max: ${Math.round(stats.kneeAngle.max)},
+    min: ${Math.round(stats.kneeAngle.idealMin)},
+    max: ${Math.round(stats.kneeAngle.idealMax)},
     unit: "degrees",
     description: "Athletic stance with proper knee flex"
   },
   hipPosition: {
-    minForward: ${stats.hipPosition.min.toFixed(1)},
-    maxForward: ${stats.hipPosition.max.toFixed(1)},
+    minForward: ${stats.hipPosition.idealMin.toFixed(1)},
+    maxForward: ${stats.hipPosition.idealMax.toFixed(1)},
     unit: "cm",
     description: "Hips slightly forward of shoulders for balance"
   },
   stanceWidth: {
-    minPercent: ${Math.round(stats.stanceWidth.min)},
-    maxPercent: ${Math.round(stats.stanceWidth.max)},
+    minPercent: ${Math.round(stats.stanceWidth.idealMin)},
+    maxPercent: ${Math.round(stats.stanceWidth.idealMax)},
     unit: "percent",
     description: "Approximately shoulder-width stance"
   },
   torsoAngle: {
-    min: ${Math.round(stats.torsoAngle.min)},
-    max: ${Math.round(stats.torsoAngle.max)},
+    min: ${Math.round(stats.torsoAngle.idealMin)},
+    max: ${Math.round(stats.torsoAngle.idealMax)},
     unit: "degrees",
     description: "Slight forward lean in upper body"
   },
   weightDistribution: {
-    min: ${Math.round(stats.weightDistribution.min)},
-    max: ${Math.round(stats.weightDistribution.max)},
+    min: ${Math.round(stats.weightDistribution.idealMin)},
+    max: ${Math.round(stats.weightDistribution.idealMax)},
     unit: "percent",
     description: "Centered weight between both feet"
   }
@@ -528,36 +538,36 @@
           <div style="margin-bottom: 15px; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 8px;">
             <strong>Knee Angle:</strong><br>
             Average: ${stats.kneeAngle.avg.toFixed(1)}°<br>
-            Min: ${stats.kneeAngle.min.toFixed(1)}° | Max: ${stats.kneeAngle.max.toFixed(1)}°<br>
-            <span style="color: #4CAF50;">Suggested Range: ${Math.round(stats.kneeAngle.min)}-${Math.round(stats.kneeAngle.max)}°</span>
+            Observed Range: ${stats.kneeAngle.min.toFixed(1)}° - ${stats.kneeAngle.max.toFixed(1)}°<br>
+            <span style="color: #4CAF50;">✅ Recommended Ideal: ${Math.round(stats.kneeAngle.idealMin)}° - ${Math.round(stats.kneeAngle.idealMax)}°</span>
           </div>
 
           <div style="margin-bottom: 15px; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 8px;">
             <strong>Hip Position:</strong><br>
-            Average: ${stats.hipPosition.avg.toFixed(1)} units forward<br>
-            Min: ${stats.hipPosition.min.toFixed(1)} | Max: ${stats.hipPosition.max.toFixed(1)}<br>
-            <span style="color: #4CAF50;">Suggested Range: ${stats.hipPosition.min.toFixed(1)} - ${stats.hipPosition.max.toFixed(1)}</span>
+            Average: ${stats.hipPosition.avg.toFixed(1)} units<br>
+            Observed Range: ${stats.hipPosition.min.toFixed(1)} - ${stats.hipPosition.max.toFixed(1)}<br>
+            <span style="color: #4CAF50;">✅ Recommended Ideal: ${stats.hipPosition.idealMin.toFixed(1)} - ${stats.hipPosition.idealMax.toFixed(1)}</span>
           </div>
 
           <div style="margin-bottom: 15px; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 8px;">
             <strong>Stance Width:</strong><br>
             Average: ${stats.stanceWidth.avg.toFixed(1)}%<br>
-            Min: ${stats.stanceWidth.min.toFixed(1)}% | Max: ${stats.stanceWidth.max.toFixed(1)}%<br>
-            <span style="color: #4CAF50;">Suggested Range: ${Math.round(stats.stanceWidth.min)}-${Math.round(stats.stanceWidth.max)}%</span>
+            Observed Range: ${stats.stanceWidth.min.toFixed(1)}% - ${stats.stanceWidth.max.toFixed(1)}%<br>
+            <span style="color: #4CAF50;">✅ Recommended Ideal: ${Math.round(stats.stanceWidth.idealMin)}% - ${Math.round(stats.stanceWidth.idealMax)}%</span>
           </div>
 
           <div style="margin-bottom: 15px; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 8px;">
             <strong>Torso Angle:</strong><br>
             Average: ${stats.torsoAngle.avg.toFixed(1)}°<br>
-            Min: ${stats.torsoAngle.min.toFixed(1)}° | Max: ${stats.torsoAngle.max.toFixed(1)}°<br>
-            <span style="color: #4CAF50;">Suggested Range: ${Math.round(stats.torsoAngle.min)}-${Math.round(stats.torsoAngle.max)}°</span>
+            Observed Range: ${stats.torsoAngle.min.toFixed(1)}° - ${stats.torsoAngle.max.toFixed(1)}°<br>
+            <span style="color: #4CAF50;">✅ Recommended Ideal: ${Math.round(stats.torsoAngle.idealMin)}° - ${Math.round(stats.torsoAngle.idealMax)}°</span>
           </div>
 
           <div style="margin-bottom: 15px; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 8px;">
             <strong>Weight Distribution:</strong><br>
             Average: ${stats.weightDistribution.avg.toFixed(1)}%<br>
-            Min: ${stats.weightDistribution.min.toFixed(1)}% | Max: ${stats.weightDistribution.max.toFixed(1)}%<br>
-            <span style="color: #4CAF50;">Suggested Range: ${Math.round(stats.weightDistribution.min)}-${Math.round(stats.weightDistribution.max)}%</span>
+            Observed Range: ${stats.weightDistribution.min.toFixed(1)}% - ${stats.weightDistribution.max.toFixed(1)}%<br>
+            <span style="color: #4CAF50;">✅ Recommended Ideal: ${Math.round(stats.weightDistribution.idealMin)}% - ${Math.round(stats.weightDistribution.idealMax)}%</span>
           </div>
         </div>
 
