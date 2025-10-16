@@ -12,78 +12,97 @@
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
       min-height: 100vh;
-      padding: 40px 20px;
-      color: #333;
+      padding: 48px 24px;
+      color: #1a202c;
     }
 
     .container {
-      max-width: 1200px;
+      max-width: 1000px;
       margin: 0 auto;
     }
 
     /* Header */
     .header {
       text-align: center;
-      margin-bottom: 50px;
-      color: white;
+      margin-bottom: 56px;
+      animation: fadeInDown 0.6s ease-out;
     }
 
     .logo {
-      font-size: 48px;
+      font-size: 56px;
       font-weight: 800;
-      margin-bottom: 10px;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -1px;
     }
 
     .tagline {
       font-size: 20px;
-      opacity: 0.95;
-      font-weight: 300;
+      color: #4a5568;
+      font-weight: 400;
+      letter-spacing: 0.5px;
     }
 
     /* Upload Section */
     .upload-section {
       background: white;
-      border-radius: 20px;
-      padding: 60px 40px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-      margin-bottom: 30px;
+      border-radius: 16px;
+      padding: 48px 40px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      margin-bottom: 32px;
       text-align: center;
+      animation: fadeInUp 0.6s ease-out 0.2s both;
     }
 
     .upload-title {
-      font-size: 28px;
-      font-weight: 600;
-      color: #333;
-      margin-bottom: 15px;
+      font-size: 32px;
+      font-weight: 700;
+      color: #1a202c;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
     }
 
     .upload-subtitle {
       font-size: 16px;
-      color: #666;
-      margin-bottom: 40px;
+      color: #718096;
+      margin-bottom: 32px;
+      line-height: 1.6;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
     }
 
     .upload-btn {
-      display: inline-block;
-      padding: 18px 48px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px 32px;
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
       color: white;
       border: none;
-      border-radius: 50px;
-      font-size: 18px;
+      border-radius: 12px;
+      font-size: 16px;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 12px rgba(30, 60, 114, 0.3);
+      width: 220px;
+      height: 52px;
     }
 
     .upload-btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+      box-shadow: 0 8px 20px rgba(30, 60, 114, 0.4);
+    }
+
+    .upload-btn:active {
+      transform: translateY(0);
     }
 
     input[type="file"] {
@@ -100,11 +119,22 @@
       width: 100%;
       max-width: 900px;
       aspect-ratio: 16 / 9;
-      margin: 0 auto 30px auto;
-      background-color: #000;
-      border-radius: 20px;
+      margin: 0 auto 32px auto;
+      background: white;
+      border-radius: 16px;
       overflow: hidden;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      padding: 8px;
+      animation: fadeInUp 0.6s ease-out 0.4s both;
+    }
+
+    #playerContainer > div {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background-color: #000;
+      border-radius: 12px;
+      overflow: hidden;
     }
 
     #resultsVideo, #resultsCanvas {
@@ -113,6 +143,7 @@
       left: 0;
       width: 100%;
       height: 100%;
+      border-radius: 12px;
     }
 
     #resultsVideo { z-index: 1; }
@@ -124,36 +155,189 @@
     /* Feedback Panel */
     #feedbackPanel {
       background: white;
-      border-radius: 20px;
-      padding: 40px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-      max-width: 900px;
+      border-radius: 16px;
+      padding: 48px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      max-width: 700px;
       margin: 0 auto;
+      animation: fadeInUp 0.6s ease-out;
+    }
+
+    /* Email Modal */
+    #emailModal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #emailModal.show {
+      display: flex;
+    }
+
+    .modal-content {
+      background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+      padding: 50px 40px;
+      border-radius: 20px;
+      max-width: 480px;
+      width: 90%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      text-align: center;
+      animation: slideUp 0.4s ease-out;
+    }
+
+    .modal-emoji {
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+
+    .modal-title {
+      margin-bottom: 15px;
+      color: #1e3c72;
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    .modal-text {
+      margin-bottom: 30px;
+      color: #666;
+      line-height: 1.8;
+      font-size: 16px;
+    }
+
+    .modal-text .feature {
+      color: #2a5298;
+      font-weight: 600;
+    }
+
+    .modal-form input[type="email"] {
+      width: 100%;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      font-size: 16px;
+      transition: all 0.3s;
+      font-family: inherit;
+    }
+
+    .modal-form input[type="email"]:focus {
+      outline: none;
+      border-color: #2a5298;
+      box-shadow: 0 0 0 3px rgba(42,82,152,0.1);
+    }
+
+    .modal-form button[type="submit"] {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 17px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .modal-form button[type="submit"]:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(30,60,114,0.4);
+    }
+
+    .modal-close {
+      margin-top: 20px;
+      background: none;
+      border: none;
+      color: #999;
+      cursor: pointer;
+      font-size: 14px;
+      transition: color 0.2s;
+    }
+
+    .modal-close:hover {
+      color: #666;
+    }
+
+    .modal-success {
+      color: #2a5298;
+      font-weight: 600;
+      font-size: 18px;
+      padding: 20px;
+    }
+
+    /* Animations */
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     /* Responsive */
     @media (max-width: 768px) {
       body {
-        padding: 20px 10px;
+        padding: 24px 16px;
       }
       .logo {
-        font-size: 36px;
+        font-size: 40px;
       }
       .tagline {
         font-size: 16px;
       }
       .upload-section {
-        padding: 40px 20px;
+        padding: 32px 24px;
       }
       .upload-title {
         font-size: 24px;
       }
       .upload-btn {
-        padding: 15px 36px;
-        font-size: 16px;
+        width: 100%;
+        max-width: 280px;
       }
       #feedbackPanel {
-        padding: 30px 20px;
+        padding: 32px 24px;
+      }
+      .modal-content {
+        padding: 40px 30px;
+        margin: 20px;
+      }
+      .modal-title {
+        font-size: 24px;
       }
     }
   </style>
@@ -175,11 +359,37 @@
     </div>
 
     <div id="playerContainer" class="hidden">
-      <video id="resultsVideo" controls playsinline></video>
-      <canvas id="resultsCanvas"></canvas>
+      <div>
+        <video id="resultsVideo" controls playsinline></video>
+        <canvas id="resultsCanvas"></canvas>
+      </div>
     </div>
 
     <div id="feedbackPanel" style="display: none;"></div>
+  </div>
+
+  <!-- Email Modal -->
+  <div id="emailModal">
+    <div class="modal-content">
+      <div class="modal-emoji">🚀</div>
+      <h2 class="modal-title">Want More Advanced Features?</h2>
+      <div class="modal-text">
+        Join our beta for early access to:<br>
+        <span class="feature">✓</span> Personalized training drills<br>
+        <span class="feature">✓</span> Progress tracking over time<br>
+        <span class="feature">✓</span> Turn-by-turn analysis
+      </div>
+      <form id="emailForm" class="modal-form" action="https://formspree.io/f/xovkdygy" method="POST">
+        <input
+          type="email"
+          name="email"
+          placeholder="Enter your email"
+          required
+        >
+        <button type="submit">Join Beta Waitlist</button>
+      </form>
+      <button id="closeModal" class="modal-close">Maybe later</button>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
@@ -677,7 +887,88 @@
 
       feedbackPanel.innerHTML = html;
       feedbackPanel.style.display = 'block';
+
+      // Show email modal after 2 seconds
+      setTimeout(() => {
+        showEmailModal();
+      }, 2000);
     }
+
+    // ============================================
+    // EMAIL MODAL LOGIC
+    // ============================================
+
+    function showEmailModal() {
+      const modal = document.getElementById('emailModal');
+      modal.classList.add('show');
+    }
+
+    function closeEmailModal() {
+      const modal = document.getElementById('emailModal');
+      modal.classList.remove('show');
+    }
+
+    // Handle email form submission
+    document.addEventListener('DOMContentLoaded', () => {
+      const emailForm = document.getElementById('emailForm');
+      const closeModalBtn = document.getElementById('closeModal');
+      const modal = document.getElementById('emailModal');
+
+      // Close on "Maybe later" button
+      closeModalBtn.addEventListener('click', closeEmailModal);
+
+      // Close on outside click
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          closeEmailModal();
+        }
+      });
+
+      // Handle form submission
+      emailForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(emailForm);
+        const submitButton = emailForm.querySelector('button[type="submit"]');
+        const originalText = submitButton.textContent;
+
+        submitButton.textContent = 'Joining...';
+        submitButton.disabled = true;
+
+        try {
+          const response = await fetch(emailForm.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+              'Accept': 'application/json'
+            }
+          });
+
+          if (response.ok) {
+            // Show success message
+            const modalContent = document.querySelector('.modal-content');
+            modalContent.innerHTML = `
+              <div class="modal-emoji">🎉</div>
+              <h2 class="modal-title">Thanks for Joining!</h2>
+              <div class="modal-success">
+                Check your email for updates on our beta launch.
+              </div>
+            `;
+
+            // Close modal after 2 seconds
+            setTimeout(() => {
+              closeEmailModal();
+            }, 2000);
+          } else {
+            throw new Error('Submission failed');
+          }
+        } catch (error) {
+          alert('Oops! Something went wrong. Please try again.');
+          submitButton.textContent = originalText;
+          submitButton.disabled = false;
+        }
+      });
+    });
 
     // ============================================
     // MAIN APPLICATION LOGIC
