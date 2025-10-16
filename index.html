@@ -144,12 +144,19 @@
       width: 100%;
       height: 100%;
       border-radius: 12px;
+      filter: none;
+      backdrop-filter: none;
     }
 
-    #resultsVideo { z-index: 1; }
+    #resultsVideo {
+      z-index: 1;
+      opacity: 1;
+    }
+
     #resultsCanvas {
       z-index: 2;
       pointer-events: none;
+      mix-blend-mode: normal;
     }
 
     /* Analyzing Indicator */
@@ -914,9 +921,9 @@
         </div>
 
         <div class="modal-email-section">
-          <div class="modal-email-title">🚀 Want personalized tips & progress tracking?</div>
+          <div class="modal-email-title">🎿 Join our waitlist! Get early access when we launch</div>
           <div class="modal-email-subtitle">
-            Join our beta for early access to advanced features like turn-by-turn analysis and custom training drills.
+            Be the first to know when we release better AI models, new features, and improved analysis. No spam, just updates.
           </div>
           <form id="emailForm" class="modal-form" action="https://formspree.io/f/xovkdygy" method="POST">
             <input
@@ -1030,7 +1037,7 @@
                 <div class="modal-success">
                   <div class="emoji">🎉</div>
                   <h2>Thanks for Joining!</h2>
-                  <p>We'll notify you when we launch with personalized tips and advanced features.</p>
+                  <p>We'll notify you when we release new features and improved AI models. Check your email!</p>
                 </div>
               `;
 
