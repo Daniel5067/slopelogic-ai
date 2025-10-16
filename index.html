@@ -125,7 +125,7 @@
       overflow: hidden;
       box-shadow: 0 4px 20px rgba(0,0,0,0.08);
       padding: 8px;
-      animation: fadeInUp 0.6s ease-out 0.4s both;
+      animation: fadeInUp 0.6s ease-out both;
     }
 
     #playerContainer > div {
@@ -152,19 +152,30 @@
       pointer-events: none;
     }
 
-    /* Feedback Panel */
-    #feedbackPanel {
-      background: white;
-      border-radius: 16px;
-      padding: 48px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-      max-width: 700px;
-      margin: 0 auto;
-      animation: fadeInUp 0.6s ease-out;
+    /* Analyzing Indicator */
+    #analyzingIndicator {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(30, 60, 114, 0.95);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 24px;
+      font-size: 14px;
+      font-weight: 600;
+      z-index: 10;
+      display: none;
+      animation: pulse 2s ease-in-out infinite;
     }
 
-    /* Email Modal */
-    #emailModal {
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    /* Results Modal */
+    #resultsModal {
       display: none;
       position: fixed;
       top: 0;
@@ -176,55 +187,82 @@
       z-index: 1000;
       justify-content: center;
       align-items: center;
+      padding: 24px;
+      overflow-y: auto;
     }
 
-    #emailModal.show {
+    #resultsModal.show {
       display: flex;
     }
 
     .modal-content {
-      background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
-      padding: 50px 40px;
+      background: white;
       border-radius: 20px;
-      max-width: 480px;
-      width: 90%;
+      max-width: 600px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
       box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-      text-align: center;
       animation: slideUp 0.4s ease-out;
+      position: relative;
+      margin: auto;
     }
 
-    .modal-emoji {
-      font-size: 48px;
-      margin-bottom: 20px;
-    }
-
-    .modal-title {
-      margin-bottom: 15px;
-      color: #1e3c72;
+    .modal-close-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: none;
+      border: none;
       font-size: 28px;
-      font-weight: 700;
-      line-height: 1.3;
+      color: #999;
+      cursor: pointer;
+      transition: color 0.2s;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1;
     }
 
-    .modal-text {
-      margin-bottom: 30px;
+    .modal-close-btn:hover {
       color: #666;
-      line-height: 1.8;
-      font-size: 16px;
     }
 
-    .modal-text .feature {
-      color: #2a5298;
-      font-weight: 600;
+    .modal-results-content {
+      padding: 48px 40px 32px 40px;
+    }
+
+    .modal-email-section {
+      background: #f8f9fa;
+      padding: 32px 40px;
+      border-top: 2px solid #e9ecef;
+      text-align: center;
+    }
+
+    .modal-email-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1e3c72;
+      margin-bottom: 12px;
+    }
+
+    .modal-email-subtitle {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 24px;
+      line-height: 1.6;
     }
 
     .modal-form input[type="email"] {
       width: 100%;
-      padding: 16px 20px;
-      margin-bottom: 16px;
+      padding: 14px 18px;
+      margin-bottom: 12px;
       border: 2px solid #e0e0e0;
       border-radius: 12px;
-      font-size: 16px;
+      font-size: 15px;
       transition: all 0.3s;
       font-family: inherit;
     }
@@ -237,15 +275,16 @@
 
     .modal-form button[type="submit"] {
       width: 100%;
-      padding: 16px;
+      padding: 14px;
       background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
       color: white;
       border: none;
       border-radius: 12px;
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      margin-bottom: 12px;
     }
 
     .modal-form button[type="submit"]:hover {
@@ -253,25 +292,45 @@
       box-shadow: 0 8px 20px rgba(30,60,114,0.4);
     }
 
-    .modal-close {
-      margin-top: 20px;
-      background: none;
-      border: none;
-      color: #999;
+    .modal-form .secondary-btn {
+      width: 100%;
+      padding: 14px;
+      background: white;
+      color: #1e3c72;
+      border: 2px solid #1e3c72;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
       cursor: pointer;
-      font-size: 14px;
-      transition: color 0.2s;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    .modal-close:hover {
-      color: #666;
+    .modal-form .secondary-btn:hover {
+      background: #f8f9fa;
+      transform: translateY(-1px);
     }
 
     .modal-success {
-      color: #2a5298;
-      font-weight: 600;
-      font-size: 18px;
-      padding: 20px;
+      padding: 40px;
+      text-align: center;
+    }
+
+    .modal-success .emoji {
+      font-size: 64px;
+      margin-bottom: 20px;
+    }
+
+    .modal-success h2 {
+      color: #1e3c72;
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .modal-success p {
+      color: #666;
+      font-size: 16px;
+      line-height: 1.6;
     }
 
     /* Animations */
@@ -359,36 +418,21 @@
     </div>
 
     <div id="playerContainer" class="hidden">
+      <div id="analyzingIndicator">🔍 Analyzing your form...</div>
       <div>
         <video id="resultsVideo" controls playsinline></video>
         <canvas id="resultsCanvas"></canvas>
       </div>
     </div>
-
-    <div id="feedbackPanel" style="display: none;"></div>
   </div>
 
-  <!-- Email Modal -->
-  <div id="emailModal">
+  <!-- Results Modal (combines results + email form) -->
+  <div id="resultsModal">
     <div class="modal-content">
-      <div class="modal-emoji">🚀</div>
-      <h2 class="modal-title">Want More Advanced Features?</h2>
-      <div class="modal-text">
-        Join our beta for early access to:<br>
-        <span class="feature">✓</span> Personalized training drills<br>
-        <span class="feature">✓</span> Progress tracking over time<br>
-        <span class="feature">✓</span> Turn-by-turn analysis
+      <button class="modal-close-btn" id="modalCloseBtn">×</button>
+      <div id="modalContentArea">
+        <!-- Results and email form will be inserted here dynamically -->
       </div>
-      <form id="emailForm" class="modal-form" action="https://formspree.io/f/xovkdygy" method="POST">
-        <input
-          type="email"
-          name="email"
-          placeholder="Enter your email"
-          required
-        >
-        <button type="submit">Join Beta Waitlist</button>
-      </form>
-      <button id="closeModal" class="modal-close">Maybe later</button>
     </div>
   </div>
 
@@ -787,8 +831,6 @@
     }
 
     function displaySummaryReport(summary) {
-      const feedbackPanel = document.getElementById('feedbackPanel');
-
       // Calculate overall score
       const overallScore = Math.round(summary.reduce((sum, item) => sum + item.score, 0) / summary.length);
 
@@ -815,38 +857,38 @@
         focusItems = sortedIssues.slice(0, 2);
       }
 
-      // Build HTML
-      let html = `
-        <div style="max-width: 700px; margin: 0 auto;">
-          <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #ddd; margin-bottom: 30px;">
-            <div style="font-size: 14px; color: #888; letter-spacing: 2px; margin-bottom: 10px;">━━━━━━━━━━━━━━━━━━━━━━━━</div>
-            <h2 style="margin: 0; font-size: 28px; color: #333; font-weight: 700;">📊 YOUR RESULTS</h2>
-            <div style="font-size: 14px; color: #888; letter-spacing: 2px; margin-top: 10px;">━━━━━━━━━━━━━━━━━━━━━━━━</div>
+      // Build combined results + email HTML
+      const html = `
+        <div class="modal-results-content">
+          <div style="text-align: center; padding-bottom: 24px; border-bottom: 2px solid #e9ecef; margin-bottom: 32px;">
+            <div style="font-size: 14px; color: #999; letter-spacing: 1px; margin-bottom: 8px;">━━━━━━━━━━━━━━━━━━━━━━━━</div>
+            <h2 style="margin: 0; font-size: 28px; color: #1a202c; font-weight: 700;">📊 YOUR RESULTS</h2>
+            <div style="font-size: 14px; color: #999; letter-spacing: 1px; margin-top: 8px;">━━━━━━━━━━━━━━━━━━━━━━━━</div>
           </div>
 
-          <div style="text-align: center; margin-bottom: 35px;">
-            <div style="font-size: 42px; font-weight: 800; color: ${overallScore >= 80 ? '#4caf50' : overallScore >= 60 ? '#ff9800' : '#f44336'}; margin-bottom: 5px;">
+          <div style="text-align: center; margin-bottom: 32px;">
+            <div style="font-size: 48px; font-weight: 800; color: ${overallScore >= 80 ? '#4caf50' : overallScore >= 60 ? '#ff9800' : '#f44336'}; margin-bottom: 8px;">
               ${overallScore}/100
             </div>
-            <div style="font-size: 14px; color: #666;">Overall Score</div>
+            <div style="font-size: 14px; color: #718096;">Overall Score</div>
           </div>
 
-          <div style="margin-bottom: 35px;">
-            <h3 style="font-size: 22px; margin: 0 0 20px 0; color: ${isFineTuning ? '#2196F3' : '#f44336'}; font-weight: 700;">
+          <div style="margin-bottom: 32px;">
+            <h3 style="font-size: 20px; margin: 0 0 16px 0; color: ${isFineTuning ? '#2196F3' : '#f44336'}; font-weight: 700;">
               ${isFineTuning ? '🎯 FINE-TUNE THIS:' : '🎯 FOCUS ON THIS:'}
             </h3>
 
             ${focusItems.map((item, index) => `
-              <div style="margin-bottom: 20px; padding: 25px; background: ${isFineTuning ? '#e3f2fd' : '#fff5f5'}; border-radius: 15px; border-left: 5px solid ${isFineTuning ? '#2196F3' : '#f44336'};">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                  <div style="font-size: 20px; font-weight: 700; color: #333;">
+              <div style="margin-bottom: 16px; padding: 20px; background: ${isFineTuning ? '#e3f2fd' : '#fff5f5'}; border-radius: 12px; border-left: 4px solid ${isFineTuning ? '#2196F3' : '#f44336'};">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                  <div style="font-size: 18px; font-weight: 700; color: #1a202c;">
                     ${focusItems.length > 1 ? `${index + 1}. ` : ''}${item.category}
                   </div>
-                  <div style="font-size: 22px; font-weight: 700; color: ${isFineTuning ? '#2196F3' : '#f44336'};">
+                  <div style="font-size: 20px; font-weight: 700; color: ${isFineTuning ? '#2196F3' : '#f44336'};">
                     ${item.score}/100
                   </div>
                 </div>
-                <div style="font-size: 16px; line-height: 1.6; color: #444;">
+                <div style="font-size: 15px; line-height: 1.6; color: #4a5568;">
                   ${item.message}
                   ${index === 0 && !isFineTuning ? ' <strong style="color: #f44336;">This is the most important thing to work on right now!</strong>' : ''}
                   ${isFineTuning ? ' <strong style="color: #2196F3;">You\'re doing great! Just polish this a bit more.</strong>' : ''}
@@ -854,121 +896,159 @@
               </div>
             `).join('')}
 
-            ${isFineTuning ? '' : '<div style="font-size: 15px; color: #888; font-style: italic; margin-top: 15px; padding-left: 10px;">💡 Fix this first, then we\'ll work on the next level!</div>'}
+            ${!isFineTuning ? '<div style="font-size: 14px; color: #718096; font-style: italic; margin-top: 12px;">💡 Fix this first, then we\'ll work on the next level!</div>' : ''}
           </div>
 
           ${strengths.length > 0 ? `
-            <div style="margin-bottom: 35px;">
-              <h3 style="font-size: 20px; margin: 0 0 15px 0; color: #4caf50; font-weight: 700;">✅ WHAT YOU'RE DOING WELL:</h3>
-              <div style="background: #f1f8f4; border-radius: 15px; padding: 20px; border-left: 5px solid #4caf50;">
+            <div style="margin-bottom: 0;">
+              <h3 style="font-size: 18px; margin: 0 0 12px 0; color: #4caf50; font-weight: 700;">✅ WHAT YOU'RE DOING WELL:</h3>
+              <div style="background: #f1f8f4; border-radius: 12px; padding: 16px; border-left: 4px solid #4caf50;">
                 ${strengths.map(item => `
-                  <div style="margin-bottom: 8px; font-size: 16px; color: #333;">
-                    • ${item.message.replace(/! 💪/, '!').replace(/!/g, '')}
+                  <div style="margin-bottom: 6px; font-size: 15px; color: #1a202c;">
+                    • ${item.message.replace(/! 💪/, '!').replace(/!$/, '')}
                   </div>
                 `).join('')}
               </div>
             </div>
           ` : ''}
+        </div>
 
-          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; padding: 20px; margin-bottom: 25px; color: white;">
-            <div style="font-size: 18px; font-weight: 600; margin-bottom: 10px;">💡 TIP:</div>
-            <div style="font-size: 15px; line-height: 1.6;">
-              ${isFineTuning
-                ? 'You\'re doing awesome! Keep practicing and you\'ll be even better. Upload another video to track your progress!'
-                : 'Upload another video after practicing to get more specific feedback and unlock the next level!'}
-            </div>
+        <div class="modal-email-section">
+          <div class="modal-email-title">🚀 Want personalized tips & progress tracking?</div>
+          <div class="modal-email-subtitle">
+            Join our beta for early access to advanced features like turn-by-turn analysis and custom training drills.
           </div>
-
-          <button onclick="location.reload()" style="width: 100%; padding: 18px; background: white; color: #667eea; border: 3px solid #667eea; border-radius: 50px; font-size: 18px; font-weight: 700; cursor: pointer; transition: all 0.3s ease;">
-            🔄 Analyze Another Video
-          </button>
+          <form id="emailForm" class="modal-form" action="https://formspree.io/f/xovkdygy" method="POST">
+            <input
+              type="email"
+              name="email"
+              placeholder="Enter your email"
+              required
+            >
+            <button type="submit">Join Beta Waitlist</button>
+            <button type="button" class="secondary-btn" id="analyzeAnotherBtn">🔄 Analyze Another Video</button>
+          </form>
         </div>
       `;
 
-      feedbackPanel.innerHTML = html;
-      feedbackPanel.style.display = 'block';
-
-      // Show email modal after 2 seconds
-      setTimeout(() => {
-        showEmailModal();
-      }, 2000);
+      // Show modal with content
+      const modalContentArea = document.getElementById('modalContentArea');
+      modalContentArea.innerHTML = html;
+      showResultsModal();
     }
 
     // ============================================
-    // EMAIL MODAL LOGIC
+    // RESULTS MODAL LOGIC
     // ============================================
 
-    function showEmailModal() {
-      const modal = document.getElementById('emailModal');
+    function showResultsModal() {
+      const modal = document.getElementById('resultsModal');
       modal.classList.add('show');
+
+      // Set up event listeners after modal content is loaded
+      setTimeout(() => {
+        setupModalEventListeners();
+      }, 100);
     }
 
-    function closeEmailModal() {
-      const modal = document.getElementById('emailModal');
+    function closeResultsModal() {
+      const modal = document.getElementById('resultsModal');
       modal.classList.remove('show');
     }
 
-    // Handle email form submission
-    document.addEventListener('DOMContentLoaded', () => {
-      const emailForm = document.getElementById('emailForm');
-      const closeModalBtn = document.getElementById('closeModal');
-      const modal = document.getElementById('emailModal');
+    function resetToInitialState() {
+      // Hide video player
+      document.getElementById('playerContainer').classList.add('hidden');
 
-      // Close on "Maybe later" button
-      closeModalBtn.addEventListener('click', closeEmailModal);
+      // Show upload section
+      document.querySelector('.upload-section').style.display = 'block';
+
+      // Reset video
+      const video = document.getElementById('resultsVideo');
+      video.src = '';
+      video.load();
+
+      // Clear measurements
+      if (window.allMeasurements) {
+        window.allMeasurements = [];
+      }
+
+      // Close modal
+      closeResultsModal();
+    }
+
+    function setupModalEventListeners() {
+      const emailForm = document.getElementById('emailForm');
+      const analyzeAnotherBtn = document.getElementById('analyzeAnotherBtn');
+      const modalCloseBtn = document.getElementById('modalCloseBtn');
+      const modal = document.getElementById('resultsModal');
+
+      // Close button
+      if (modalCloseBtn) {
+        modalCloseBtn.addEventListener('click', closeResultsModal);
+      }
 
       // Close on outside click
-      modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-          closeEmailModal();
-        }
-      });
-
-      // Handle form submission
-      emailForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        const formData = new FormData(emailForm);
-        const submitButton = emailForm.querySelector('button[type="submit"]');
-        const originalText = submitButton.textContent;
-
-        submitButton.textContent = 'Joining...';
-        submitButton.disabled = true;
-
-        try {
-          const response = await fetch(emailForm.action, {
-            method: 'POST',
-            body: formData,
-            headers: {
-              'Accept': 'application/json'
-            }
-          });
-
-          if (response.ok) {
-            // Show success message
-            const modalContent = document.querySelector('.modal-content');
-            modalContent.innerHTML = `
-              <div class="modal-emoji">🎉</div>
-              <h2 class="modal-title">Thanks for Joining!</h2>
-              <div class="modal-success">
-                Check your email for updates on our beta launch.
-              </div>
-            `;
-
-            // Close modal after 2 seconds
-            setTimeout(() => {
-              closeEmailModal();
-            }, 2000);
-          } else {
-            throw new Error('Submission failed');
+      if (modal) {
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+            closeResultsModal();
           }
-        } catch (error) {
-          alert('Oops! Something went wrong. Please try again.');
-          submitButton.textContent = originalText;
-          submitButton.disabled = false;
-        }
-      });
-    });
+        });
+      }
+
+      // Analyze another video button
+      if (analyzeAnotherBtn) {
+        analyzeAnotherBtn.addEventListener('click', resetToInitialState);
+      }
+
+      // Handle email form submission
+      if (emailForm) {
+        emailForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+
+          const formData = new FormData(emailForm);
+          const submitButton = emailForm.querySelector('button[type="submit"]');
+          const originalText = submitButton.textContent;
+
+          submitButton.textContent = 'Joining...';
+          submitButton.disabled = true;
+
+          try {
+            const response = await fetch(emailForm.action, {
+              method: 'POST',
+              body: formData,
+              headers: {
+                'Accept': 'application/json'
+              }
+            });
+
+            if (response.ok) {
+              // Show success message
+              const modalContentArea = document.getElementById('modalContentArea');
+              modalContentArea.innerHTML = `
+                <div class="modal-success">
+                  <div class="emoji">🎉</div>
+                  <h2>Thanks for Joining!</h2>
+                  <p>We'll notify you when we launch with personalized tips and advanced features.</p>
+                </div>
+              `;
+
+              // Close modal after 2.5 seconds
+              setTimeout(() => {
+                closeResultsModal();
+              }, 2500);
+            } else {
+              throw new Error('Submission failed');
+            }
+          } catch (error) {
+            alert('Oops! Something went wrong. Please try again.');
+            submitButton.textContent = originalText;
+            submitButton.disabled = false;
+          }
+        });
+      }
+    }
 
     // ============================================
     // MAIN APPLICATION LOGIC
@@ -976,12 +1056,14 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       const videoUpload = document.getElementById('videoUpload');
+      const uploadSection = document.querySelector('.upload-section');
       const playerContainer = document.getElementById('playerContainer');
       const resultsVideo = document.getElementById('resultsVideo');
       const resultsCanvas = document.getElementById('resultsCanvas');
-      const feedbackPanel = document.getElementById('feedbackPanel');
+      const analyzingIndicator = document.getElementById('analyzingIndicator');
 
-      let allMeasurements = [];
+      // Make allMeasurements globally accessible for reset
+      window.allMeasurements = [];
 
       const pose = new Pose({
         locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`
@@ -999,15 +1081,30 @@
       videoUpload.addEventListener('change', (event) => {
         const file = event.target.files[0];
         if (file) {
-          allMeasurements = [];
-          feedbackPanel.style.display = 'none';
+          // Reset measurements
+          window.allMeasurements = [];
+
+          // Hide upload section
+          uploadSection.style.display = 'none';
+
+          // Show video player
           playerContainer.classList.remove('hidden');
+
+          // Load video
           resultsVideo.src = URL.createObjectURL(file);
           resultsVideo.load();
+
+          // Autoplay when loaded
+          resultsVideo.addEventListener('loadedmetadata', () => {
+            resultsVideo.play();
+          }, { once: true });
         }
       });
 
       resultsVideo.addEventListener('play', () => {
+        // Show analyzing indicator
+        analyzingIndicator.style.display = 'block';
+
         const processVideo = async () => {
           if (resultsVideo.paused || resultsVideo.ended) return;
           await pose.send({ image: resultsVideo });
@@ -1017,8 +1114,11 @@
       });
 
       resultsVideo.addEventListener('ended', () => {
-        if (allMeasurements.length > 0) {
-          const summary = analyzeAveragePerformance(allMeasurements);
+        // Hide analyzing indicator
+        analyzingIndicator.style.display = 'none';
+
+        if (window.allMeasurements.length > 0) {
+          const summary = analyzeAveragePerformance(window.allMeasurements);
           displaySummaryReport(summary);
         }
       });
@@ -1038,7 +1138,7 @@
 
           if (resultsCount % 30 === 0) {
             const measurements = extractMeasurements(results.poseLandmarks);
-            allMeasurements.push(measurements);
+            window.allMeasurements.push(measurements);
           }
         }
       }
