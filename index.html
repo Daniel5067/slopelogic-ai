@@ -128,7 +128,7 @@
       animation: fadeInUp 0.6s ease-out both;
     }
 
-    #playerContainer > div {
+    #videoWrapper {
       position: relative;
       width: 100%;
       height: 100%;
@@ -144,19 +144,18 @@
       width: 100%;
       height: 100%;
       border-radius: 12px;
-      filter: none;
-      backdrop-filter: none;
+      object-fit: contain;
     }
 
     #resultsVideo {
       z-index: 1;
-      opacity: 1;
+      display: block;
+      visibility: visible;
     }
 
     #resultsCanvas {
       z-index: 2;
       pointer-events: none;
-      mix-blend-mode: normal;
     }
 
     /* Analyzing Indicator */
@@ -426,7 +425,7 @@
 
     <div id="playerContainer" class="hidden">
       <div id="analyzingIndicator">🔍 Analyzing your form...</div>
-      <div>
+      <div id="videoWrapper">
         <video id="resultsVideo" controls playsinline></video>
         <canvas id="resultsCanvas"></canvas>
       </div>
@@ -1088,29 +1087,44 @@
       videoUpload.addEventListener('change', (event) => {
         const file = event.target.files[0];
         if (file) {
+          console.log('📹 Video file selected:', file.name);
+
           // Reset measurements
           window.allMeasurements = [];
 
           // Hide upload section
           uploadSection.style.display = 'none';
+          console.log('✅ Upload section hidden');
 
           // Show video player
           playerContainer.classList.remove('hidden');
+          console.log('✅ Player container shown');
 
           // Load video
           resultsVideo.src = URL.createObjectURL(file);
           resultsVideo.load();
+          console.log('✅ Video loaded');
 
           // Autoplay when loaded
           resultsVideo.addEventListener('loadedmetadata', () => {
-            resultsVideo.play();
+            console.log('📹 Video metadata loaded - dimensions:', resultsVideo.videoWidth, 'x', resultsVideo.videoHeight);
+            console.log('📹 Video element visibility:', window.getComputedStyle(resultsVideo).visibility);
+            console.log('📹 Video element display:', window.getComputedStyle(resultsVideo).display);
+            console.log('📹 Video element z-index:', window.getComputedStyle(resultsVideo).zIndex);
+
+            resultsVideo.play()
+              .then(() => console.log('▶️ Video playing successfully'))
+              .catch(err => console.error('❌ Video play error:', err));
           }, { once: true });
         }
       });
 
       resultsVideo.addEventListener('play', () => {
+        console.log('▶️ Video play event fired');
+
         // Show analyzing indicator
         analyzingIndicator.style.display = 'block';
+        console.log('✅ Analyzing indicator shown');
 
         const processVideo = async () => {
           if (resultsVideo.paused || resultsVideo.ended) return;
@@ -1134,6 +1148,13 @@
       function onResults(results) {
         resultsCount++;
 
+        if (resultsCount === 1) {
+          console.log('🎨 First frame processed');
+          console.log('🎨 Canvas dimensions:', resultsCanvas.width, 'x', resultsCanvas.height);
+          console.log('🎨 Canvas visibility:', window.getComputedStyle(resultsCanvas).visibility);
+          console.log('🎨 Canvas z-index:', window.getComputedStyle(resultsCanvas).zIndex);
+        }
+
         const canvasCtx = resultsCanvas.getContext('2d');
         resultsCanvas.width = resultsVideo.videoWidth;
         resultsCanvas.height = resultsVideo.videoHeight;
@@ -1143,10 +1164,16 @@
           window.drawConnectors(canvasCtx, results.poseLandmarks, window.POSE_CONNECTIONS, { color: '#00FF00', lineWidth: 4 });
           window.drawLandmarks(canvasCtx, results.poseLandmarks, { color: '#FF0000', radius: 2 });
 
+          if (resultsCount === 1) {
+            console.log('✅ Skeleton drawn on canvas');
+          }
+
           if (resultsCount % 30 === 0) {
             const measurements = extractMeasurements(results.poseLandmarks);
             window.allMeasurements.push(measurements);
           }
+        } else if (resultsCount === 1) {
+          console.log('⚠️ No pose landmarks detected in first frame');
         }
       }
     });
