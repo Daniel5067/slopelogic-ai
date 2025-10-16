@@ -401,7 +401,8 @@
         status: kneeStatus,
         average: kneeStats.avg.toFixed(0) + "°",
         range: `${kneeStats.min.toFixed(0)}-${kneeStats.max.toFixed(0)}°`,
-        consistency: kneeStats.stdDev.toFixed(1) + "°"
+        consistency: kneeStats.stdDev.toFixed(1) + "°",
+        importance: 5  // Most important
       });
 
       // 2. Hip Position Analysis
@@ -442,7 +443,8 @@
         status: hipStatus,
         average: hipStats.avg.toFixed(1),
         range: `${hipStats.min.toFixed(1)} to ${hipStats.max.toFixed(1)}`,
-        consistency: hipStats.stdDev.toFixed(1)
+        consistency: hipStats.stdDev.toFixed(1),
+        importance: 2
       });
 
       // 3. Stance Width Analysis
@@ -483,7 +485,8 @@
         status: stanceStatus,
         average: stanceStats.avg.toFixed(0) + "%",
         range: `${stanceStats.min.toFixed(0)}-${stanceStats.max.toFixed(0)}%`,
-        consistency: stanceStats.stdDev.toFixed(1) + "%"
+        consistency: stanceStats.stdDev.toFixed(1) + "%",
+        importance: 4
       });
 
       // 4. Torso Angle Analysis
@@ -524,7 +527,8 @@
         status: torsoStatus,
         average: torsoStats.avg.toFixed(0) + "°",
         range: `${torsoStats.min.toFixed(0)}-${torsoStats.max.toFixed(0)}°`,
-        consistency: torsoStats.stdDev.toFixed(1) + "°"
+        consistency: torsoStats.stdDev.toFixed(1) + "°",
+        importance: 1
       });
 
       // 5. Weight Distribution Analysis
@@ -565,7 +569,8 @@
         status: weightStatus,
         average: weightStats.avg.toFixed(0) + "%",
         range: `${weightStats.min.toFixed(0)}-${weightStats.max.toFixed(0)}%`,
-        consistency: weightStats.stdDev.toFixed(1) + "%"
+        consistency: weightStats.stdDev.toFixed(1) + "%",
+        importance: 3
       });
 
       return summary;
@@ -574,63 +579,103 @@
     function displaySummaryReport(summary) {
       const feedbackPanel = document.getElementById('feedbackPanel');
 
-      const sortedByScore = [...summary].sort((a, b) => a.score - b.score);
-      const areasToImprove = sortedByScore.slice(0, 3);
-      const strengths = sortedByScore.slice(-3).reverse().filter(item => item.score >= 70);
+      // Calculate overall score
       const overallScore = Math.round(summary.reduce((sum, item) => sum + item.score, 0) / summary.length);
 
-      feedbackPanel.innerHTML = `
-        <div style="text-align: center; border-bottom: 3px solid #667eea; padding-bottom: 20px; margin-bottom: 30px;">
-          <h2 style="margin: 0 0 10px 0; font-size: 32px; color: #333; font-weight: 700;">📊 Performance Summary</h2>
-          <p style="color: #666; font-size: 14px;">Analysis based on average performance throughout your entire run</p>
-        </div>
+      // Find issues (score < 70) and strengths (score >= 80)
+      const issues = summary.filter(item => item.score < 70);
+      const strengths = summary.filter(item => item.status === 'good');
 
-        <div style="font-size: 36px; font-weight: 700; text-align: center; margin-bottom: 40px; padding: 25px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 15px; color: white;">
-          Overall Score: ${overallScore}/100
-        </div>
+      // Sort issues by importance (higher importance first)
+      const sortedIssues = [...issues].sort((a, b) => b.importance - a.importance);
 
-        <div style="margin-bottom: 35px;">
-          <h3 style="font-size: 20px; margin: 0 0 20px 0; color: #f44336; font-weight: 600;">🎯 Top Areas to Improve</h3>
-          ${areasToImprove.map(item => `
-            <div style="margin-bottom: 15px; padding: 20px; background: #fff5f5; border-radius: 12px; border-left: 5px solid #f44336;">
-              <div style="font-weight: 600; margin-bottom: 10px; font-size: 16px; color: #333;">
-                ${item.emoji} ${item.category} <span style="float: right; color: #f44336; font-size: 18px;">${item.score}/100</span>
-              </div>
-              <div style="font-size: 15px; color: #666; padding-left: 15px; margin-bottom: 10px;">
-                → ${item.message}
-              </div>
-              <div style="font-size: 13px; color: #999; padding-left: 15px;">
-                <strong>Average:</strong> ${item.average} | <strong>Range:</strong> ${item.range} | <strong>Variation:</strong> ${item.consistency}
-              </div>
+      // Determine what to show
+      let focusItems = [];
+      let isFineTuning = false;
+
+      if (issues.length === 0) {
+        // All scores above 80 - show fine-tuning mode
+        isFineTuning = true;
+        const sortedByScore = [...summary].sort((a, b) => a.score - b.score);
+        focusItems = [sortedByScore[0]]; // Show lowest scoring metric
+      } else if (issues.length === 1) {
+        focusItems = [sortedIssues[0]];
+      } else {
+        // 2+ issues - show top 2 by importance
+        focusItems = sortedIssues.slice(0, 2);
+      }
+
+      // Build HTML
+      let html = `
+        <div style="max-width: 700px; margin: 0 auto;">
+          <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #ddd; margin-bottom: 30px;">
+            <div style="font-size: 14px; color: #888; letter-spacing: 2px; margin-bottom: 10px;">━━━━━━━━━━━━━━━━━━━━━━━━</div>
+            <h2 style="margin: 0; font-size: 28px; color: #333; font-weight: 700;">📊 YOUR RESULTS</h2>
+            <div style="font-size: 14px; color: #888; letter-spacing: 2px; margin-top: 10px;">━━━━━━━━━━━━━━━━━━━━━━━━</div>
+          </div>
+
+          <div style="text-align: center; margin-bottom: 35px;">
+            <div style="font-size: 42px; font-weight: 800; color: ${overallScore >= 80 ? '#4caf50' : overallScore >= 60 ? '#ff9800' : '#f44336'}; margin-bottom: 5px;">
+              ${overallScore}/100
             </div>
-          `).join('')}
-        </div>
+            <div style="font-size: 14px; color: #666;">Overall Score</div>
+          </div>
 
-        ${strengths.length > 0 ? `
           <div style="margin-bottom: 35px;">
-            <h3 style="font-size: 20px; margin: 0 0 20px 0; color: #4caf50; font-weight: 600;">✅ What You Did Well</h3>
-            ${strengths.map(item => `
-              <div style="margin-bottom: 12px; padding: 18px; background: #f1f8f4; border-radius: 12px; border-left: 5px solid #4caf50;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                  <span style="font-weight: 600; color: #333; font-size: 16px;">${item.emoji} ${item.category}</span>
-                  <span style="color: #4caf50; font-weight: 700; font-size: 18px;">${item.score}/100</span>
+            <h3 style="font-size: 22px; margin: 0 0 20px 0; color: ${isFineTuning ? '#2196F3' : '#f44336'}; font-weight: 700;">
+              ${isFineTuning ? '🎯 FINE-TUNE THIS:' : '🎯 FOCUS ON THIS:'}
+            </h3>
+
+            ${focusItems.map((item, index) => `
+              <div style="margin-bottom: 20px; padding: 25px; background: ${isFineTuning ? '#e3f2fd' : '#fff5f5'}; border-radius: 15px; border-left: 5px solid ${isFineTuning ? '#2196F3' : '#f44336'};">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                  <div style="font-size: 20px; font-weight: 700; color: #333;">
+                    ${focusItems.length > 1 ? `${index + 1}. ` : ''}${item.category}
+                  </div>
+                  <div style="font-size: 22px; font-weight: 700; color: ${isFineTuning ? '#2196F3' : '#f44336'};">
+                    ${item.score}/100
+                  </div>
                 </div>
-                <div style="font-size: 14px; color: #666; margin-bottom: 8px;">
+                <div style="font-size: 16px; line-height: 1.6; color: #444;">
                   ${item.message}
-                </div>
-                <div style="font-size: 13px; color: #999;">
-                  <strong>Average:</strong> ${item.average} | <strong>Range:</strong> ${item.range} | <strong>Variation:</strong> ${item.consistency}
+                  ${index === 0 && !isFineTuning ? ' <strong style="color: #f44336;">This is the most important thing to work on right now!</strong>' : ''}
+                  ${isFineTuning ? ' <strong style="color: #2196F3;">You\'re doing great! Just polish this a bit more.</strong>' : ''}
                 </div>
               </div>
             `).join('')}
-          </div>
-        ` : ''}
 
-        <button onclick="location.reload()" style="width: 100%; padding: 18px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 50px; font-size: 18px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
-          🔄 Analyze Another Video
-        </button>
+            ${isFineTuning ? '' : '<div style="font-size: 15px; color: #888; font-style: italic; margin-top: 15px; padding-left: 10px;">💡 Fix this first, then we\'ll work on the next level!</div>'}
+          </div>
+
+          ${strengths.length > 0 ? `
+            <div style="margin-bottom: 35px;">
+              <h3 style="font-size: 20px; margin: 0 0 15px 0; color: #4caf50; font-weight: 700;">✅ WHAT YOU'RE DOING WELL:</h3>
+              <div style="background: #f1f8f4; border-radius: 15px; padding: 20px; border-left: 5px solid #4caf50;">
+                ${strengths.map(item => `
+                  <div style="margin-bottom: 8px; font-size: 16px; color: #333;">
+                    • ${item.message.replace(/! 💪/, '!').replace(/!/g, '')}
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; padding: 20px; margin-bottom: 25px; color: white;">
+            <div style="font-size: 18px; font-weight: 600; margin-bottom: 10px;">💡 TIP:</div>
+            <div style="font-size: 15px; line-height: 1.6;">
+              ${isFineTuning
+                ? 'You\'re doing awesome! Keep practicing and you\'ll be even better. Upload another video to track your progress!'
+                : 'Upload another video after practicing to get more specific feedback and unlock the next level!'}
+            </div>
+          </div>
+
+          <button onclick="location.reload()" style="width: 100%; padding: 18px; background: white; color: #667eea; border: 3px solid #667eea; border-radius: 50px; font-size: 18px; font-weight: 700; cursor: pointer; transition: all 0.3s ease;">
+            🔄 Analyze Another Video
+          </button>
+        </div>
       `;
 
+      feedbackPanel.innerHTML = html;
       feedbackPanel.style.display = 'block';
     }
 
