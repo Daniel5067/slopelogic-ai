@@ -78,7 +78,15 @@
       margin-right: auto;
     }
 
-    .upload-btn {
+    .button-container {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .primary-btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -92,16 +100,43 @@
       cursor: pointer;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       box-shadow: 0 4px 12px rgba(30, 60, 114, 0.3);
-      width: 220px;
+      min-width: 180px;
       height: 52px;
     }
 
-    .upload-btn:hover {
+    .primary-btn:hover {
       transform: translateY(-2px);
       box-shadow: 0 8px 20px rgba(30, 60, 114, 0.4);
     }
 
-    .upload-btn:active {
+    .primary-btn:active {
+      transform: translateY(0);
+    }
+
+    .secondary-outline-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px 32px;
+      background: white;
+      color: #1e3c72;
+      border: 2px solid #1e3c72;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      min-width: 180px;
+      height: 52px;
+    }
+
+    .secondary-outline-btn:hover {
+      background: #f8f9fa;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(30, 60, 114, 0.2);
+    }
+
+    .secondary-outline-btn:active {
       transform: translateY(0);
     }
 
@@ -416,11 +451,16 @@
 
     <div class="upload-section">
       <h2 class="upload-title">Analyze Your Ski Technique</h2>
-      <p class="upload-subtitle">Upload a video of your skiing and get professional-level feedback on your form</p>
-      <label for="videoUpload" class="upload-btn">
-        📹 Choose Video File
-      </label>
-      <input type="file" id="videoUpload" accept="video/*">
+      <p class="upload-subtitle">See how our AI analyzes ski form in real-time, or upload your own video</p>
+      <div class="button-container">
+        <button id="seeDemoBtn" class="primary-btn">
+          🎥 See Demo
+        </button>
+        <label for="videoUpload" class="secondary-outline-btn">
+          📹 Try For Free
+        </label>
+        <input type="file" id="videoUpload" accept="video/*">
+      </div>
     </div>
 
     <div id="playerContainer" class="hidden">
@@ -1062,6 +1102,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       const videoUpload = document.getElementById('videoUpload');
+      const seeDemoBtn = document.getElementById('seeDemoBtn');
       const uploadSection = document.querySelector('.upload-section');
       const playerContainer = document.getElementById('playerContainer');
       const resultsVideo = document.getElementById('resultsVideo');
@@ -1084,38 +1125,54 @@
 
       pose.onResults(onResults);
 
+      // Function to load and play video
+      function loadAndPlayVideo(videoSource, isFile = false) {
+        console.log('📹 Loading video:', isFile ? videoSource.name : videoSource);
+
+        // Reset measurements
+        window.allMeasurements = [];
+
+        // Hide upload section
+        uploadSection.style.display = 'none';
+        console.log('✅ Upload section hidden');
+
+        // Show video player
+        playerContainer.classList.remove('hidden');
+        console.log('✅ Player container shown');
+
+        // Load video
+        if (isFile) {
+          resultsVideo.src = URL.createObjectURL(videoSource);
+        } else {
+          resultsVideo.src = videoSource;
+        }
+        resultsVideo.load();
+        console.log('✅ Video loaded');
+
+        // Autoplay when loaded
+        resultsVideo.addEventListener('loadedmetadata', () => {
+          console.log('📹 Video metadata loaded - dimensions:', resultsVideo.videoWidth, 'x', resultsVideo.videoHeight);
+          console.log('📹 Video element visibility:', window.getComputedStyle(resultsVideo).visibility);
+          console.log('📹 Video element display:', window.getComputedStyle(resultsVideo).display);
+          console.log('📹 Video element z-index:', window.getComputedStyle(resultsVideo).zIndex);
+
+          resultsVideo.play()
+            .then(() => console.log('▶️ Video playing successfully'))
+            .catch(err => console.error('❌ Video play error:', err));
+        }, { once: true });
+      }
+
+      // See Demo button handler
+      seeDemoBtn.addEventListener('click', () => {
+        console.log('🎥 See Demo button clicked');
+        loadAndPlayVideo('./assets/demo-ski-video.mp4', false);
+      });
+
+      // Try For Free (file upload) handler
       videoUpload.addEventListener('change', (event) => {
         const file = event.target.files[0];
         if (file) {
-          console.log('📹 Video file selected:', file.name);
-
-          // Reset measurements
-          window.allMeasurements = [];
-
-          // Hide upload section
-          uploadSection.style.display = 'none';
-          console.log('✅ Upload section hidden');
-
-          // Show video player
-          playerContainer.classList.remove('hidden');
-          console.log('✅ Player container shown');
-
-          // Load video
-          resultsVideo.src = URL.createObjectURL(file);
-          resultsVideo.load();
-          console.log('✅ Video loaded');
-
-          // Autoplay when loaded
-          resultsVideo.addEventListener('loadedmetadata', () => {
-            console.log('📹 Video metadata loaded - dimensions:', resultsVideo.videoWidth, 'x', resultsVideo.videoHeight);
-            console.log('📹 Video element visibility:', window.getComputedStyle(resultsVideo).visibility);
-            console.log('📹 Video element display:', window.getComputedStyle(resultsVideo).display);
-            console.log('📹 Video element z-index:', window.getComputedStyle(resultsVideo).zIndex);
-
-            resultsVideo.play()
-              .then(() => console.log('▶️ Video playing successfully'))
-              .catch(err => console.error('❌ Video play error:', err));
-          }, { once: true });
+          loadAndPlayVideo(file, true);
         }
       });
 
