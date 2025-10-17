@@ -1143,8 +1143,10 @@
         // Load video
         if (isFile) {
           resultsVideo.src = URL.createObjectURL(videoSource);
+          resultsVideo.muted = false; // User uploads have sound
         } else {
           resultsVideo.src = videoSource;
+          resultsVideo.muted = true; // Demo video is muted
         }
         resultsVideo.load();
         console.log('✅ Video loaded');
